@@ -4,12 +4,12 @@
     {
       "inputs": [
         {
-          "internalType": "contract ERC20",
+          "internalType": "contract ERC20UpgradeSafe",
           "name": "src",
           "type": "address"
         },
         {
-          "internalType": "contract ERC20",
+          "internalType": "contract ERC20UpgradeSafe",
           "name": "dest",
           "type": "address"
         },
@@ -38,7 +38,7 @@
     {
       "inputs": [
         {
-          "internalType": "contract ERC20",
+          "internalType": "contract ERC20UpgradeSafe",
           "name": "token",
           "type": "address"
         },
@@ -62,7 +62,7 @@
     {
       "inputs": [
         {
-          "internalType": "contract ERC20",
+          "internalType": "contract ERC20UpgradeSafe",
           "name": "token",
           "type": "address"
         },
@@ -91,7 +91,7 @@
     {
       "inputs": [
         {
-          "internalType": "contract ERC20",
+          "internalType": "contract ERC20UpgradeSafe",
           "name": "src",
           "type": "address"
         },
@@ -101,7 +101,7 @@
           "type": "uint256"
         },
         {
-          "internalType": "contract ERC20",
+          "internalType": "contract ERC20UpgradeSafe",
           "name": "dest",
           "type": "address"
         },

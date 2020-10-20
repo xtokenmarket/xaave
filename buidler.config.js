@@ -1,13 +1,14 @@
 usePlugin('@nomiclabs/buidler-waffle');
 usePlugin('@nomiclabs/buidler-etherscan');
 usePlugin('buidler-contract-sizer');
+usePlugin("@nomiclabs/buidler-ethers");
 require('dotenv').config();
 
 module.exports = {
 	networks: {
-		ropsten: {
-			url: `https://ropsten.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
-			accounts: [`0x${process.env.ROPSTEN_PRIVATE_KEY}`],
+		kovan: {
+			url: `https://kovan.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
+			accounts: [`0x${process.env.KOVAN_PRIVATE_KEY}`],
 			gasPrice: 20000000000,
 		},
 	},
@@ -16,7 +17,7 @@ module.exports = {
 		blockGasLimit: 8000000,
 	},
 	solc: {
-		version: '0.6.2',
+		version: "0.6.2",
 		optimizer: {
 			enabled: true,
 			runs: 200

@@ -1,0 +1,32 @@
+{
+  "contractName": "MockProtoGovernance",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_proposalId",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_vote",
+          "type": "uint256"
+        },
+        {
+          "internalType": "contract IERC20",
+          "name": "_asset",
+          "type": "address"
+        }
+      ],
+      "name": "submitVoteByVoter",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "bytecode": "0x6080604052348015600f57600080fd5b5060998061001e6000396000f3fe6080604052348015600f57600080fd5b506004361060285760003560e01c8063f50a990d14602d575b600080fd5b605c60048036036060811015604157600080fd5b50803590602081013590604001356001600160a01b0316605e565b005b50505056fea26469706673582212206d57590fbae1667f52f4c398b42919944e9e6c6db83188be8c848ab505e36f3a64736f6c63430006020033",
+  "deployedBytecode": "0x6080604052348015600f57600080fd5b506004361060285760003560e01c8063f50a990d14602d575b600080fd5b605c60048036036060811015604157600080fd5b50803590602081013590604001356001600160a01b0316605e565b005b50505056fea26469706673582212206d57590fbae1667f52f4c398b42919944e9e6c6db83188be8c848ab505e36f3a64736f6c63430006020033",
+  "linkReferences": {},
+  "deployedLinkReferences": {}
+}

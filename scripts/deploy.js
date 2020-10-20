@@ -1,44 +1,81 @@
-// // ROPSTEN
-// const BNT_ADDRESS = '0x98474564A00d15989F16BFB7c162c782b0e2b336'
-// const ETH_ADDRESS = '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'
-// // const ZERO_ADDRESS = 0x0000000000000000000000000000000000000000
+const ADDRESSES = {
+	aave: {
+		kovan: '0xb597cd8d3217ea6477232f9217fa70837ff667af',
+    },
+    votingAave: {
+        kovan: '',
+        mainnet: '0x0671CA7E039af2cF2D2c5e7F1Aa261Ae78B3ffDF'
+    },
+	stakedAave: {
+        kovan: '0xf2fbf9A6710AfDa1c4AaB2E922DE9D69E0C97fd2',
+        mainnet: '0x4da27a545c0c5B758a6BA100e3a049001de870f5'
+	},
+	governance: {
+        kovan: '0x374d0940dc9a980219e0aA6566C3067159d2F442',
+        mainnet: '0x8a2Efd9A790199F4c94c6effE210fce0B4724f52'
+	},
+	kyberProxy: {
+		kovan: '0x692f391bCc85cefCe8C237C01e1f636BbD70EA4D',
+    },
+    proxyAdmin: {
+        kovan: '0x803428e38DBFDf2EB25D94B538A1CFc395E66615'
+    },
+	cosigner1: {
+		kovan: '0x885583955F14970CbC0046B91297e9915f4DE6E4',
+	},
+	cosigner2: {
+		kovan: '0x5314736b4b7778aC25be9afb3819c4ABF4FBEaEA',
+	},
+};
 
-// const LINK_ADDRESS = '0x20fe562d797a42dcb3399062ae9546cd06f63280'
-// const LINK_V2_CONVERTER_ADDRESS = '0xa366Ca2095b3210F4c7096B80Fee553c36294128'
+const network = 'kovan';
 
-// const BAT_ADDRESS = '0x443fd8d5766169416ae42b8e050fe9422f628419'
-// const BAT_V2_CONVERTER_ADDRESS = '0x25d67b9c63C5e043570BdEa62f747021905fb501'
+async function main() {
+	const [deployer, cosigner1, cosigner2] = await ethers.getSigners();
 
-// const WBTC_ADDRESS = '0xbde8bb00a7ef67007a96945b3a3621177b615c44'
-// const WBTC_V2_CONVERTER_ADDRESS = '0x8cEeF24Ac562a0eD777073Ae3bF0b1311B2E9C1f'
+	console.log('Deploying contracts with the account:', await deployer.getAddress());
 
-// const BANCOR_NETWORK_ADDRESS = '0xbe76bC6d0fC627EDE9B4B96A674AE6655919803f'
-// const BANCOR_CONTRACT_REGISTRY = '0xA6DB4B0963C37Bc959CbC0a874B5bDDf2250f26F';
+	console.log('Account balance:', (await deployer.getBalance()).toString());
 
-// async function main() {
-//   const [deployer] = await ethers.getSigners()
+	const xAAVE = await ethers.getContractFactory('xAAVE');
+	const xaave = await xAAVE.deploy();
 
-//   console.log(
-//     'Deploying contracts with the account:',
-//     await deployer.getAddress(),
-//   )
+	await xaave.deployed();
+	console.log('xaave.address', xaave.address);
 
-//   console.log('Account balance:', (await deployer.getBalance()).toString())
+	const xAAVEProxy = await ethers.getContractFactory('xAAVEProxy');
+	const xaaveProxy = await xAAVEProxy.deploy(
+		xaave.address,
+		ADDRESSES['proxyAdmin'][network],
+		ADDRESSES['cosigner1'][network],
+		ADDRESSES['cosigner2'][network]
+	);
+	await xaaveProxy.deployed();
 
-//   const xBNT = await ethers.getContractFactory('xBNT')
-//   const xbnt = await xBNT.deploy(
-//     BNT_ADDRESS,
-//     [LINK_V2_CONVERTER_ADDRESS, BAT_V2_CONVERTER_ADDRESS, WBTC_V2_CONVERTER_ADDRESS],
-//     BANCOR_CONTRACT_REGISTRY
-//   );
+	const xaaveProxyCast = await ethers.getContractAt('xAAVE', xaaveProxy.address, deployer);
 
-//   await xbnt.deployed();
-//   console.log('xBNT address:', xbnt.address)
-// }
+	await xaaveProxyCast.initialize(
+		ADDRESSES['aave'][network],
+		ADDRESSES['stakedAave'][network],
+		ADDRESSES['governance'][network],
+		ADDRESSES['kyberProxy'][network],
+		'500',
+		'500',
+		'100',
+		ADDRESSES['proxyAdmin'][network]
+	);
 
-// main()
-//   .then(() => process.exit(0))
-//   .catch((error) => {
-//     console.error(error)
-//     process.exit(1)
-//   })
+    await xaaveProxyCast.approveStakingContract();
+    console.log('xaaveProxy', xaaveProxyCast.address);
+}
+
+main()
+	.then(() => process.exit(0))
+	.catch((error) => {
+		console.error(error);
+		process.exit(1);
+	});
+
+module.exports = {
+    ADDRESSES
+}

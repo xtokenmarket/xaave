@@ -1,24 +1,44 @@
 pragma solidity >=0.6.0;
 
-// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-// import "@openzeppelin/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import {OwnableUpgradeSafe as Ownable} from "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import {PausableUpgradeSafe as Pausable} from "@openzeppelin/contracts-ethereum-package/contracts/utils/Pausable.sol";
+import {ERC20UpgradeSafe as ERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 
-import "./interface/IKyberNetworkProxy.sol";
-import "./interface/IStakedAave.sol";
+interface IAaveProtoGovernance {
+    function submitVoteByVoter(
+        uint256 _proposalId,
+        uint256 _vote,
+        IERC20 _asset
+    ) external;
+}
 
-// stake tx
-// https://etherscan.io/tx/0xa82a152968c3b74d68325638e89ad5a5a8849534de880dab9430429185563337
-// staked aave address: 0x4da27a545c0c5B758a6BA100e3a049001de870f5
-contract xAAVE is ERC20, Ownable {
+interface IKyberNetworkProxy {
+    function getExpectedRate(ERC20 src, ERC20 dest, uint srcQty) external view returns (uint expectedRate, uint slippageRate);
+    function swapEtherToToken(ERC20 token, uint minConversionRate) external payable returns(uint);
+    function swapTokenToEther(ERC20 token, uint tokenQty, uint minRate) external payable returns(uint);
+    function swapTokenToToken(ERC20 src, uint srcAmount, ERC20 dest, uint minConversionRate) external returns(uint);
+}
+
+interface IStakedAave {
+  function stake(address to, uint256 amount) external;
+  function redeem(address to, uint256 amount) external;
+  function cooldown() external;
+  function claimRewards(address to, uint256 amount) external;
+}
+
+contract xAAVE is ERC20, Pausable, Ownable {
     using SafeMath for uint256;
 
     uint256 constant DEC_18 = 1e18;
     uint256 constant MAX_UINT = 2**256 - 1;
     uint256 constant AAVE_BUFFER_TARGET = 20; // 5% target
-    uint256 constant INITIAL_SUPPLY_MULTIPLIER = 10;
+    uint256 constant INITIAL_SUPPLY_MULTIPLIER = 100;
+    uint256 constant LIQUIDATION_TIME_PERIOD = 4 weeks;
 
     uint256 public withdrawableAaveFees;
+    uint256 public adminActiveTimestamp;
 
     address constant ZERO_ADDRESS = address(0);
     address
@@ -27,9 +47,13 @@ contract xAAVE is ERC20, Ownable {
     address private manager;
 
     IERC20 private aave;
+    IERC20 private votingAave;
     IStakedAave private stakedAave;
+    IAaveProtoGovernance private governance;
 
     IKyberNetworkProxy kyberProxy;
+
+    bool cooldownActivated;
 
     struct FeeDivisors {
         uint256 mintFee;
@@ -39,20 +63,29 @@ contract xAAVE is ERC20, Ownable {
 
     FeeDivisors public feeDivisors;
 
-    // change to initialize when proxy added
-    constructor(
+    function initialize(
         IERC20 _aave,
+        IERC20 _votingAave,
         IStakedAave _stakedAave,
+        IAaveProtoGovernance _governance,
         IKyberNetworkProxy _kyberProxy,
         uint256 _mintFeeDivisor,
         uint256 _burnFeeDivisor,
-        uint256 _claimFeeDivisor
-    ) public ERC20("xAAVE", "xAAVEa") {
+        uint256 _claimFeeDivisor,
+        address _ownerAddress
+    ) public initializer {
+        __Ownable_init();
+        __Pausable_init();
+        __ERC20_init("xAAVE", "xAAVEa");
+
         aave = _aave;
+        votingAave = _votingAave;
         stakedAave = _stakedAave;
+        governance = _governance;
         kyberProxy = _kyberProxy;
 
         _setFeeDivisors(_mintFeeDivisor, _burnFeeDivisor, _claimFeeDivisor);
+        _updateAdminActiveTimestamp();
     }
 
     /* ========================================================================================= */
@@ -75,12 +108,18 @@ contract xAAVE is ERC20, Ownable {
             msg.value.sub(fee)
         )(ERC20(address(aave)), minRate);
 
+        uint256 totalSupply = totalSupply();
         uint256 allocationToStake = _calculateAllocationToStake(
             bufferBalance,
             incrementalAave,
-            stakedBalance
+            stakedBalance,
+            totalSupply
         );
-        uint256 mintAmount = calculateMintAmount(incrementalAave, aaveHoldings);
+        uint256 mintAmount = calculateMintAmount(
+            incrementalAave,
+            aaveHoldings,
+            totalSupply
+        );
 
         _stake(allocationToStake);
         return super._mint(msg.sender, mintAmount);
@@ -88,7 +127,7 @@ contract xAAVE is ERC20, Ownable {
 
     /*
      * @dev Mint xAAVE using AAVE
-     * @notice Must run approval first
+     * @notice Must run ERC20 approval first
      * @param aaveAmount: AAVE to contribute
      */
     function mintWithToken(uint256 aaveAmount) public {
@@ -103,14 +142,21 @@ contract xAAVE is ERC20, Ownable {
         _incrementWithdrawableAaveFees(fee);
 
         uint256 incrementalAave = aaveAmount.sub(fee);
+        uint256 totalSupply = totalSupply();
+
         uint256 allocationToStake = _calculateAllocationToStake(
             bufferBalance,
             incrementalAave,
-            stakedBalance
+            stakedBalance,
+            totalSupply
         );
         _stake(allocationToStake);
 
-        uint256 mintAmount = calculateMintAmount(incrementalAave, aaveHoldings);
+        uint256 mintAmount = calculateMintAmount(
+            incrementalAave,
+            aaveHoldings,
+            totalSupply
+        );
         return super._mint(msg.sender, mintAmount);
     }
 
@@ -119,19 +165,19 @@ contract xAAVE is ERC20, Ownable {
      * @notice Will fail if redemption value exceeds available liquidity
      * @param redeemAmount: xAAVE to redeem
      */
-    function burn(uint256 redeemAmount) public {
-        require(redeemAmount > 0, "Must send xAAVE");
+    function burn(uint256 tokenAmount) public {
+        require(tokenAmount > 0, "Must send xAAVE");
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
         uint256 aaveHoldings = bufferBalance.add(stakedBalance);
-        uint256 proRataAave = aaveHoldings.mul(redeemAmount).div(totalSupply());
+        uint256 proRataAave = aaveHoldings.mul(tokenAmount).div(totalSupply());
 
         require(proRataAave <= bufferBalance, "Insufficient exit liquidity");
 
         uint256 fee = _calculateFee(proRataAave, feeDivisors.burnFee);
         _incrementWithdrawableAaveFees(fee);
 
-        super._burn(msg.sender, redeemAmount);
+        super._burn(msg.sender, tokenAmount);
         aave.transfer(msg.sender, proRataAave.sub(fee));
     }
 
@@ -155,37 +201,213 @@ contract xAAVE is ERC20, Ownable {
         return (getStakedBalance(), getBufferBalance());
     }
 
+    /*
+     * @dev Helper function for mint, mintWithToken
+     * @param incrementalAave: AAVE contributed
+     * @param aaveHoldingsBefore: xAAVE buffer reserve + staked balance
+     * @param totalSupply: xAAVE.totalSupply()
+     */
     function calculateMintAmount(
         uint256 incrementalAave,
-        uint256 aaveHoldingsBefore
+        uint256 aaveHoldingsBefore,
+        uint256 totalSupply
     ) public view returns (uint256 mintAmount) {
-        uint256 totalSupply = totalSupply();
         if (totalSupply == 0)
             return incrementalAave.mul(INITIAL_SUPPLY_MULTIPLIER);
 
         mintAmount = (incrementalAave).mul(totalSupply).div(aaveHoldingsBefore);
     }
 
+    /*
+     * @dev Helper function for mint, mintWithToken
+     * @param _bufferBalanceBefore: xAAVE AAVE buffer balance pre-mint
+     * @param _incrementalAave: AAVE contributed
+     * @param _stakedBalance: xAAVE stakedAave balance pre-mint
+     * @param _totalSupply: xAAVE.totalSupply()
+     */
+    function _calculateAllocationToStake(
+        uint256 _bufferBalanceBefore,
+        uint256 _incrementalAave,
+        uint256 _stakedBalance,
+        uint256 _totalSupply
+    ) internal view returns (uint256) {
+        if (_totalSupply == 0)
+            return
+                _incrementalAave.sub(_incrementalAave.div(AAVE_BUFFER_TARGET));
+
+        uint256 bufferBalanceAfter = _bufferBalanceBefore.add(_incrementalAave);
+        uint256 aaveHoldings = bufferBalanceAfter.add(_stakedBalance);
+
+        uint256 targetBufferBalance = (aaveHoldings.add(bufferBalanceAfter))
+            .div(AAVE_BUFFER_TARGET);
+
+        // allocate full incremental aave to buffer balance
+        if (bufferBalanceAfter < targetBufferBalance) return 0;
+
+        return bufferBalanceAfter.sub(targetBufferBalance);
+    }
+
     /* ========================================================================================= */
-    /*                                       Fund Management                                     */
+    /*                                   Fund Management - Admin                                 */
     /* ========================================================================================= */
 
+    /*
+     * @notice xAAVE only stakes when cooldown is not active
+     * @param _amount: allocation to staked balance
+     */
     function _stake(uint256 _amount) private {
-        if (_amount > 0) {
+        if (_amount > 0 && !cooldownActivated) {
             stakedAave.stake(address(this), _amount);
         }
     }
 
+    /*
+     * @notice Admin-callable function in case of persistent depletion of buffer reserve
+     * or emergency shutdown
+     * @notice Incremental AAVE will only be allocated to buffer reserve
+     */
     function cooldown() public onlyOwnerOrManager {
+        _updateAdminActiveTimestamp();
+        _cooldown();
+    }
+
+    /*
+     * @notice Admin-callable function disabling cooldown and returning fund to 
+     * normal course of management
+     */
+    function disableCooldown() public onlyOwnerOrManager {
+        _updateAdminActiveTimestamp();
+        cooldownActivated = false;
+    }
+
+    /*
+     * @notice Admin-callable function available once cooldown has been activated
+     * and requisite time elapsed 
+     * @notice Called when buffer reserve is persistently insufficient to satisfy 
+     * redemption requirements
+     * @param amount: AAVE to unstake
+     */
+    function redeem(uint256 amount) public onlyOwnerOrManager {
+        _updateAdminActiveTimestamp();
+        _redeem(amount);
+    }
+
+    /*
+     * @notice Admin-callable function claiming staking rewards
+     * @notice Called regularly on behalf of pool in normal course of management
+     */
+    function claim() public onlyOwnerOrManager {
+        _updateAdminActiveTimestamp();
+        _claim();
+    }
+
+    /*
+     * @notice Records admin activity
+     * @notice Because Aave staking "locks" capital in contract and only admin has power
+     * to cooldown and redeem in normal course, this function certifies that admin
+     * is still active and capital is accessible
+     * @notice If not certified for a period exceeding LIQUIDATION_TIME_PERIOD,
+     * emergencyCooldown and emergencyRedeem become available to non-admin caller
+     */
+    function _updateAdminActiveTimestamp() private {
+        adminActiveTimestamp = block.timestamp;
+    }
+
+    /*
+     * @notice Function for participating in Aave Governance
+     * @notice Called regularly on behalf of pool in normal course of management
+     * @param _proposalId: 
+     * @param _vote: 
+     */
+    function vote(uint256 _proposalId, uint256 _vote)
+        public
+        onlyOwnerOrManager
+    {
+        governance.submitVoteByVoter(_proposalId, _vote, votingAave);
+    }
+
+    /*
+     * @notice Callable in case of fee revenue or extra yield opportunities in non-AAVE ERC20s
+     * @notice Reinvested in AAVE
+     * @param tokens: Addresses of non-AAVE tokens with balance in xAAVE 
+     * @param minReturns: Kyber.getExpectedRate for non-AAVE tokens
+     */
+    function convertTokensToTarget(
+        address[] calldata tokens,
+        uint256[] calldata minReturns
+    ) external onlyOwnerOrManager {
+        for (uint256 i = 0; i < tokens.length; i++) {
+            uint256 tokenBal = IERC20(tokens[i]).balanceOf(address(this));
+            uint256 bufferBalancerBefore = getBufferBalance();
+
+            kyberProxy.swapTokenToToken(
+                ERC20(tokens[i]),
+                tokenBal,
+                ERC20(address(aave)),
+                minReturns[i]
+            );
+            uint256 bufferBalanceAfter = getBufferBalance();
+
+            uint256 fee = _calculateFee(
+                bufferBalanceAfter.sub(bufferBalancerBefore),
+                feeDivisors.claimFee
+            );
+            _incrementWithdrawableAaveFees(fee);
+        }
+    }
+
+    /* ========================================================================================= */
+    /*                                   Fund Management - Public                                */
+    /* ========================================================================================= */
+
+    /*
+     * @notice If admin doesn't certify within LIQUIDATION_TIME_PERIOD,
+     * admin functions unlock to public
+     */
+    modifier liquidationTimeElapsed {
+        require(
+            block.timestamp > adminActiveTimestamp.add(LIQUIDATION_TIME_PERIOD),
+            "Liquidation time hasn't elapsed"
+        );
+        _;
+    }
+
+    /*
+     * @notice First step in xAAVE unwind in event of admin failure/incapacitation
+     */
+    function emergencyCooldown() public liquidationTimeElapsed {
+        _cooldown();
+    }
+
+    /*
+     * @notice Second step in xAAVE unwind in event of admin failure/incapacitation
+     * @notice Called after cooldown period, during unwind period
+     */
+    function emergencyRedeem(uint256 amount) public liquidationTimeElapsed {
+        _redeem(amount);
+    }
+
+    /*
+     * @notice Public callable function for claiming staking rewards
+     */
+    function claimExternal() public {
+        _claim();
+    }
+
+    /* ========================================================================================= */
+    /*                                   Fund Management - Private                               */
+    /* ========================================================================================= */
+
+    function _cooldown() private {
+        cooldownActivated = true;
         stakedAave.cooldown();
     }
 
-    function redeem(uint256 amount) public onlyOwnerOrManager {
-        stakedAave.redeem(address(this), amount);
+    function _redeem(uint256 _amount) private {
+        stakedAave.redeem(address(this), _amount);
     }
 
-    // todo: claim fees, not just staking rewards
-    function claim() public onlyOwnerOrManager {
+    function _claim() private {
         uint256 bufferBalanceBefore = getBufferBalance();
 
         stakedAave.claimRewards(address(this), MAX_UINT);
@@ -197,27 +419,9 @@ contract xAAVE is ERC20, Ownable {
         _incrementWithdrawableAaveFees(fee);
     }
 
-    function _calculateAllocationToStake(
-        uint256 bufferBalanceBefore,
-        uint256 incrementalAave,
-        uint256 stakedBalance
-    ) internal view returns (uint256 stakeAmount) {
-        uint256 bufferBalanceAfter = bufferBalanceBefore.add(incrementalAave);
-        uint256 aaveHoldings = bufferBalanceAfter.add(stakedBalance);
-
-        uint256 targetBufferBalance = (aaveHoldings.add(bufferBalanceAfter))
-            .div(AAVE_BUFFER_TARGET);
-
-        // allocate full incremental aave to buffer balance
-        if (bufferBalanceAfter < targetBufferBalance) return 0;
-
-        // allocate full incremental aave to stake
-        if (bufferBalanceBefore > targetBufferBalance)
-            return bufferBalanceAfter.sub(bufferBalanceBefore);
-
-        // partial allocation to buffer and partial to stake
-        stakeAmount = bufferBalanceAfter.sub(targetBufferBalance);
-    }
+    /* ========================================================================================= */
+    /*                                         Fee Logic                                         */
+    /* ========================================================================================= */
 
     function _calculateFee(uint256 _value, uint256 _feeDivisor)
         internal
@@ -229,8 +433,8 @@ contract xAAVE is ERC20, Ownable {
         }
     }
 
-    function _incrementWithdrawableAaveFees(uint256 feeAmount) private {
-        withdrawableAaveFees = withdrawableAaveFees.add(feeAmount);
+    function _incrementWithdrawableAaveFees(uint256 _feeAmount) private {
+        withdrawableAaveFees = withdrawableAaveFees.add(_feeAmount);
     }
 
     /*
@@ -261,6 +465,18 @@ contract xAAVE is ERC20, Ownable {
         feeDivisors.claimFee = _claimFeeDivisor;
     }
 
+    /*
+     * @notice Public callable function for claiming staking rewards
+     */
+    function withdrawFees() public onlyOwner {
+        (bool success, ) = msg.sender.call.value(address(this).balance)("");
+        require(success, "Transfer failed");
+
+        uint256 aaveFees = withdrawableAaveFees;
+        withdrawableAaveFees = 0;
+        aave.transfer(msg.sender, aaveFees);
+    }
+
     /* ========================================================================================= */
     /*                                           Utils                                           */
     /* ========================================================================================= */
@@ -269,6 +485,20 @@ contract xAAVE is ERC20, Ownable {
         aave.approve(address(stakedAave), MAX_UINT);
     }
 
+    function approveKyberContract(address _token) public onlyOwner {
+        IERC20(_token).approve(address(kyberProxy), MAX_UINT);
+    }
+
+    /*
+     * @notice Callable by admin to ensure LIQUIDATION_TIME_PERIOD won't elapse
+     */
+    function certifyAdmin() public onlyOwner {
+        _updateAdminActiveTimestamp();
+    }
+
+    /*
+     * @notice manager == alternative admin caller to owner
+     */
     function setManager(address _manager) public onlyOwner {
         manager = _manager;
     }
@@ -281,12 +511,5 @@ contract xAAVE is ERC20, Ownable {
         _;
     }
 
-    function withdrawFees() public onlyOwner {
-        (bool success, ) = msg.sender.call.value(address(this).balance)("");
-        require(success, "Transfer failed");
-
-        uint256 aaveFees = withdrawableAaveFees;
-        withdrawableAaveFees = 0;
-        aave.transfer(msg.sender, aaveFees);
-    }
+    receive() external payable {}
 }

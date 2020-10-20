@@ -1,18 +1,18 @@
 const { expect, assert } = require('chai');
-const { utils } = require('ethers');
+const { utils, ethers } = require('ethers');
 const { createFixtureLoader } = require('ethereum-waffle');
 const { xaaveFixture } = require('./fixtures');
 
 describe('xAAVE: Mint/Burn', async () => {
 	const provider = waffle.provider;
-	const [wallet, user1] = provider.getWallets();
-	const loadFixture = createFixtureLoader(provider, [wallet]);
+	const [wallet, user1, user2] = provider.getWallets();
+	const loadFixture = createFixtureLoader(provider, [wallet, user1, user2]);
 
 	let aave;
 	let xaave;
 
 	before(async () => {
-		({ xaave, aave, ETH_ADDRESS } = await loadFixture(xaaveFixture));
+		({ xaave, aave } = await loadFixture(xaaveFixture));
 	});
 
 	it('should mint xAAVE tokens to user sending ETH', async () => {
@@ -21,24 +21,24 @@ describe('xAAVE: Mint/Burn', async () => {
 		expect(xaaveBal).to.be.gt(0);
 	});
 
-	// it('should mint xBNT tokens to user sending BNT', async () => {
-	// 	const bntAmount = utils.parseEther('10');
-	// 	await bnt.transfer(user1.address, bntAmount);
-	// 	await bnt.connect(user1).approve(xbnt.address, bntAmount);
-	// 	await xbnt.connect(user1).mintWithToken(bntAmount);
-	// 	const xbntBal = await xbnt.balanceOf(user1.address);
-	// 	expect(xbntBal).to.be.gt(0);
-	// });
+	it('should mint xAAVE tokens to user sending AAVE', async () => {
+		const aaveAmount = utils.parseEther('10');
+		await aave.transfer(user1.address, aaveAmount);
+		await aave.connect(user1).approve(xaave.address, aaveAmount);
+		await xaave.connect(user1).mintWithToken(aaveAmount);
+		const xaaveBal = await xaave.balanceOf(user1.address);
+		expect(xaaveBal).to.be.gt(0);
+	});
 
-	// it('should burn xBNT tokens and redeem BNT', async () => {
-	// 	const bntBalBefore = await bnt.balanceOf(wallet.address);
-	// 	const xbntBal = await xbnt.balanceOf(wallet.address);
-	// 	const bnBal = utils.bigNumberify(xbntBal);
+	it('should burn xAAVE tokens and redeem AAVE', async () => {
+		const aaveBalBefore = await aave.balanceOf(wallet.address);
+		const xaaveBal = await xaave.balanceOf(wallet.address);
+		const bnBal = utils.bigNumberify(xaaveBal);
 
-	// 	const xbntToRedeem = bnBal.div(utils.bigNumberify(100));
-	// 	await xbnt.burn(xbntToRedeem.toString());
+		const xaaveToRedeem = bnBal.div(utils.bigNumberify(100));
+		await xaave.burn(xaaveToRedeem.toString());
 
-	// 	const bntBalAfter = await bnt.balanceOf(wallet.address);
-	// 	expect(bntBalAfter).to.be.gt(bntBalBefore);
-	// });
+		const aaveBalAfter = await aave.balanceOf(wallet.address);
+		expect(aaveBalAfter).to.be.gt(aaveBalBefore);
+	});
 });
