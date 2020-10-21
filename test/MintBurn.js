@@ -41,4 +41,16 @@ describe('xAAVE: Mint/Burn', async () => {
 		const aaveBalAfter = await aave.balanceOf(wallet.address);
 		expect(aaveBalAfter).to.be.gt(aaveBalBefore);
 	});
+
+	it('should not mint with ETH if contract is paused', async () => {
+		await xaave.pauseContract()
+		await expect(xaave.mint('0', { value: utils.parseEther('0.01') })).to.be.revertedWith('Pausable: paused');
+	});
+
+	it('should not mint with SNX if contract is paused', async () => {
+		const aaveAmount = utils.parseEther('10');
+		await aave.transfer(user1.address, aaveAmount);
+		await aave.connect(user1).approve(xaave.address, aaveAmount);
+		await expect(xaave.connect(user1).mintWithToken(aaveAmount)).to.be.revertedWith('Pausable: paused');
+	});
 });

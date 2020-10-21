@@ -4,7 +4,7 @@ const { createFixtureLoader } = require('ethereum-waffle');
 const { xaaveFixture } = require('./fixtures');
 const { increaseTime } = require('./helpers')
 
-describe('xAAVE: Cooldown', async () => {
+describe('xAAVE: Cooldown, Redeem', async () => {
 	const provider = waffle.provider;
 	const [wallet, user1, user2] = provider.getWallets();
 	const loadFixture = createFixtureLoader(provider, [wallet, user1, user2]);
@@ -53,5 +53,20 @@ describe('xAAVE: Cooldown', async () => {
 		await increaseTime(fiveWeeks)
 		await xaave.connect(user2).emergencyCooldown();
 		assert(true);
+	});
+
+	it('should not allow non-admin to trigger a redeem', async () => {
+		await xaave.mint('0', { value: utils.parseEther('0.01') });
+		await expect(xaave.connect(user2).redeem(utils.parseEther('0.001'))).to.be.revertedWith('Non-admin caller');
+	});
+
+	it('should allow non-admin to trigger a redeem after liquidation time period', async () => {
+		await xaave.mint('0', { value: utils.parseEther('0.01') });
+
+		const fiveWeeks = 60 * 60 * 24 * 7 * 5;
+		await increaseTime(fiveWeeks)
+		await xaave.connect(user2).emergencyCooldown();
+		await xaave.connect(user2).emergencyRedeem(utils.parseEther('0.001'));
+		assert(true)
 	});
 });

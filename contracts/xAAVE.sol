@@ -2,9 +2,14 @@ pragma solidity >=0.6.0;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
-import {OwnableUpgradeSafe as Ownable} from "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
-import {PausableUpgradeSafe as Pausable} from "@openzeppelin/contracts-ethereum-package/contracts/utils/Pausable.sol";
-import {ERC20UpgradeSafe as ERC20} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
+import {
+    OwnableUpgradeSafe as Ownable
+} from "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
+import {
+    ERC20UpgradeSafe as ERC20
+} from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
+
+import "./helpers/Pausable.sol";
 
 interface IAaveProtoGovernance {
     function submitVoteByVoter(
@@ -15,17 +20,39 @@ interface IAaveProtoGovernance {
 }
 
 interface IKyberNetworkProxy {
-    function getExpectedRate(ERC20 src, ERC20 dest, uint srcQty) external view returns (uint expectedRate, uint slippageRate);
-    function swapEtherToToken(ERC20 token, uint minConversionRate) external payable returns(uint);
-    function swapTokenToEther(ERC20 token, uint tokenQty, uint minRate) external payable returns(uint);
-    function swapTokenToToken(ERC20 src, uint srcAmount, ERC20 dest, uint minConversionRate) external returns(uint);
+    function getExpectedRate(
+        ERC20 src,
+        ERC20 dest,
+        uint256 srcQty
+    ) external view returns (uint256 expectedRate, uint256 slippageRate);
+
+    function swapEtherToToken(ERC20 token, uint256 minConversionRate)
+        external
+        payable
+        returns (uint256);
+
+    function swapTokenToEther(
+        ERC20 token,
+        uint256 tokenQty,
+        uint256 minRate
+    ) external payable returns (uint256);
+
+    function swapTokenToToken(
+        ERC20 src,
+        uint256 srcAmount,
+        ERC20 dest,
+        uint256 minConversionRate
+    ) external returns (uint256);
 }
 
 interface IStakedAave {
-  function stake(address to, uint256 amount) external;
-  function redeem(address to, uint256 amount) external;
-  function cooldown() external;
-  function claimRewards(address to, uint256 amount) external;
+    function stake(address to, uint256 amount) external;
+
+    function redeem(address to, uint256 amount) external;
+
+    function cooldown() external;
+
+    function claimRewards(address to, uint256 amount) external;
 }
 
 contract xAAVE is ERC20, Pausable, Ownable {
@@ -75,7 +102,6 @@ contract xAAVE is ERC20, Pausable, Ownable {
         address _ownerAddress
     ) public initializer {
         __Ownable_init();
-        __Pausable_init();
         __ERC20_init("xAAVE", "xAAVEa");
 
         aave = _aave;
@@ -94,9 +120,9 @@ contract xAAVE is ERC20, Pausable, Ownable {
 
     /*
      * @dev Mint xAAVE using ETH
-     * @param minRate: Kyber min rate
+     * @param minRate: Kyber min rate ETH=>AAVE
      */
-    function mint(uint256 minRate) external payable {
+    function mint(uint256 minRate) public payable whenNotPaused {
         require(msg.value > 0, "Must send ETH");
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
@@ -130,7 +156,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
      * @notice Must run ERC20 approval first
      * @param aaveAmount: AAVE to contribute
      */
-    function mintWithToken(uint256 aaveAmount) public {
+    function mintWithToken(uint256 aaveAmount) public whenNotPaused {
         require(aaveAmount > 0, "Must send AAVE");
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
@@ -238,8 +264,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
         uint256 bufferBalanceAfter = _bufferBalanceBefore.add(_incrementalAave);
         uint256 aaveHoldings = bufferBalanceAfter.add(_stakedBalance);
 
-        uint256 targetBufferBalance = (aaveHoldings.add(bufferBalanceAfter))
-            .div(AAVE_BUFFER_TARGET);
+        uint256 targetBufferBalance = aaveHoldings.div(AAVE_BUFFER_TARGET);
 
         // allocate full incremental aave to buffer balance
         if (bufferBalanceAfter < targetBufferBalance) return 0;
@@ -272,7 +297,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
     }
 
     /*
-     * @notice Admin-callable function disabling cooldown and returning fund to 
+     * @notice Admin-callable function disabling cooldown and returning fund to
      * normal course of management
      */
     function disableCooldown() public onlyOwnerOrManager {
@@ -282,8 +307,8 @@ contract xAAVE is ERC20, Pausable, Ownable {
 
     /*
      * @notice Admin-callable function available once cooldown has been activated
-     * and requisite time elapsed 
-     * @notice Called when buffer reserve is persistently insufficient to satisfy 
+     * and requisite time elapsed
+     * @notice Called when buffer reserve is persistently insufficient to satisfy
      * redemption requirements
      * @param amount: AAVE to unstake
      */
@@ -316,8 +341,8 @@ contract xAAVE is ERC20, Pausable, Ownable {
     /*
      * @notice Function for participating in Aave Governance
      * @notice Called regularly on behalf of pool in normal course of management
-     * @param _proposalId: 
-     * @param _vote: 
+     * @param _proposalId:
+     * @param _vote:
      */
     function vote(uint256 _proposalId, uint256 _vote)
         public
@@ -329,7 +354,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
     /*
      * @notice Callable in case of fee revenue or extra yield opportunities in non-AAVE ERC20s
      * @notice Reinvested in AAVE
-     * @param tokens: Addresses of non-AAVE tokens with balance in xAAVE 
+     * @param tokens: Addresses of non-AAVE tokens with balance in xAAVE
      * @param minReturns: Kyber.getExpectedRate for non-AAVE tokens
      */
     function convertTokensToTarget(
@@ -480,6 +505,16 @@ contract xAAVE is ERC20, Pausable, Ownable {
     /* ========================================================================================= */
     /*                                           Utils                                           */
     /* ========================================================================================= */
+
+    function pauseContract() public onlyOwner returns (bool) {
+        _pause();
+        return true;
+    }
+
+    function unpauseContract() public onlyOwner returns (bool) {
+        _unpause();
+        return true;
+    }
 
     function approveStakingContract() public onlyOwner {
         aave.approve(address(stakedAave), MAX_UINT);
