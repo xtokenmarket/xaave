@@ -46,7 +46,9 @@ async function xaaveFixture(provider, [wallet, cosigner1, cosigner2]) {
 		'500',
 		'500',
 		'100',
-		wallet.address
+		wallet.address,
+		'xAAVEa',
+		'Samuelson'
 	);
 
 	await xaaveProxyCast.approveStakingContract();

@@ -82,6 +82,8 @@ contract xAAVE is ERC20, Pausable, Ownable {
 
     bool cooldownActivated;
 
+    string mandate;
+
     struct FeeDivisors {
         uint256 mintFee;
         uint256 burnFee;
@@ -99,16 +101,19 @@ contract xAAVE is ERC20, Pausable, Ownable {
         uint256 _mintFeeDivisor,
         uint256 _burnFeeDivisor,
         uint256 _claimFeeDivisor,
-        address _ownerAddress
+        address _ownerAddress,
+        string memory _symbol,
+        string memory _mandate
     ) public initializer {
         __Ownable_init();
-        __ERC20_init("xAAVE", "xAAVEa");
+        __ERC20_init("xAAVE", _symbol);
 
         aave = _aave;
         votingAave = _votingAave;
         stakedAave = _stakedAave;
         governance = _governance;
         kyberProxy = _kyberProxy;
+        mandate = _mandate;
 
         _setFeeDivisors(_mintFeeDivisor, _burnFeeDivisor, _claimFeeDivisor);
         _updateAdminActiveTimestamp();
