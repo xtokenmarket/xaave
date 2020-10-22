@@ -64,11 +64,10 @@ describe('xAAVE: Utils', async () => {
 	});
 
 	it('should be able to certify admin', async () => {
+        const adminTimestampBefore = await xaave.adminActiveTimestamp()
         await xaave.certifyAdmin()
-        const adminTimestamp = await xaave.adminActiveTimestamp()
-        // console.log('adminTimestamp', adminTimestamp.toString())
-        // console.log('block', ethers.providers.getBlock)
-        // expect(utils.bigNumberify(adminTimestamp).add(utils.bigNumberify(10))).to.be.gt()
+        const adminTimestampAfter = await xaave.adminActiveTimestamp()
+		expect(adminTimestampAfter).to.be.gt(adminTimestampBefore)
 	});
 
 	it('should be able to recover tokens errantly transferred to contract', async () => {

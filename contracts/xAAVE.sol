@@ -20,22 +20,10 @@ interface IAaveProtoGovernance {
 }
 
 interface IKyberNetworkProxy {
-    function getExpectedRate(
-        ERC20 src,
-        ERC20 dest,
-        uint256 srcQty
-    ) external view returns (uint256 expectedRate, uint256 slippageRate);
-
     function swapEtherToToken(ERC20 token, uint256 minConversionRate)
         external
         payable
         returns (uint256);
-
-    function swapTokenToEther(
-        ERC20 token,
-        uint256 tokenQty,
-        uint256 minRate
-    ) external payable returns (uint256);
 
     function swapTokenToToken(
         ERC20 src,

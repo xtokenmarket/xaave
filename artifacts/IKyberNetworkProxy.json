@@ -5,40 +5,6 @@
       "inputs": [
         {
           "internalType": "contract ERC20UpgradeSafe",
-          "name": "src",
-          "type": "address"
-        },
-        {
-          "internalType": "contract ERC20UpgradeSafe",
-          "name": "dest",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "srcQty",
-          "type": "uint256"
-        }
-      ],
-      "name": "getExpectedRate",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "expectedRate",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "slippageRate",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "view",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "contract ERC20UpgradeSafe",
           "name": "token",
           "type": "address"
         },
@@ -49,35 +15,6 @@
         }
       ],
       "name": "swapEtherToToken",
-      "outputs": [
-        {
-          "internalType": "uint256",
-          "name": "",
-          "type": "uint256"
-        }
-      ],
-      "stateMutability": "payable",
-      "type": "function"
-    },
-    {
-      "inputs": [
-        {
-          "internalType": "contract ERC20UpgradeSafe",
-          "name": "token",
-          "type": "address"
-        },
-        {
-          "internalType": "uint256",
-          "name": "tokenQty",
-          "type": "uint256"
-        },
-        {
-          "internalType": "uint256",
-          "name": "minRate",
-          "type": "uint256"
-        }
-      ],
-      "name": "swapTokenToEther",
       "outputs": [
         {
           "internalType": "uint256",

@@ -3,7 +3,7 @@ const ADDRESSES = {
 		kovan: '0xb597cd8d3217ea6477232f9217fa70837ff667af',
     },
     votingAave: {
-        kovan: '',
+        kovan: '0x690eAcA024935Aaff9B14b9FF9e9C8757a281f3C',
         mainnet: '0x0671CA7E039af2cF2D2c5e7F1Aa261Ae78B3ffDF'
     },
 	stakedAave: {
@@ -56,13 +56,16 @@ async function main() {
 
 	await xaaveProxyCast.initialize(
 		ADDRESSES['aave'][network],
+		ADDRESSES['votingAave'][network],
 		ADDRESSES['stakedAave'][network],
 		ADDRESSES['governance'][network],
 		ADDRESSES['kyberProxy'][network],
 		'500',
 		'500',
 		'100',
-		ADDRESSES['proxyAdmin'][network]
+		ADDRESSES['proxyAdmin'][network],
+        'xAAVEa',
+        'Samuelson'
 	);
 
     await xaaveProxyCast.approveStakingContract();
