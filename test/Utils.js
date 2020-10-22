@@ -70,4 +70,19 @@ describe('xAAVE: Utils', async () => {
         // console.log('block', ethers.providers.getBlock)
         // expect(utils.bigNumberify(adminTimestamp).add(utils.bigNumberify(10))).to.be.gt()
 	});
+
+	it('should be able to recover tokens errantly transferred to contract', async () => {
+        await xaave.mint('0', { value: utils.parseEther('0.01') });
+		const xaaveBal = await xaave.balanceOf(wallet.address)
+
+		await xaave.transfer(xaave.address, xaaveBal)
+		const contractBal = await xaave.balanceOf(xaave.address)
+		expect(contractBal).to.be.gt(0)
+
+		await xaave.withdrawNativeToken()
+		const contractBalAfter = await xaave.balanceOf(xaave.address)
+		expect(contractBalAfter).to.be.equal(0)
+	});
+
+	
 });

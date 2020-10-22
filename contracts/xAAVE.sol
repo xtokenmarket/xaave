@@ -532,7 +532,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
     /*
      * @notice Callable by admin to ensure LIQUIDATION_TIME_PERIOD won't elapse
      */
-    function certifyAdmin() public onlyOwner {
+    function certifyAdmin() public onlyOwnerOrManager {
         _updateAdminActiveTimestamp();
     }
 
@@ -541,6 +541,17 @@ contract xAAVE is ERC20, Pausable, Ownable {
      */
     function setManager(address _manager) public onlyOwner {
         manager = _manager;
+    }
+
+    /*
+     * @notice Emergency function in case of errant transfer of
+     * xAAVE token directly to contract
+     */
+    function withdrawNativeToken() public onlyOwnerOrManager {
+        uint256 tokenBal = balanceOf(address(this));
+        if (tokenBal > 0) {
+            IERC20(address(this)).transfer(msg.sender, tokenBal);
+        }
     }
 
     modifier onlyOwnerOrManager {
