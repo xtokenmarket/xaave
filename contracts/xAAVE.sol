@@ -186,6 +186,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
      * @notice Will fail if redemption value exceeds available liquidity
      * @param redeemAmount: xAAVE to redeem
      * @param redeemForEth: if true, redeem xAAVE for ETH
+     * @param minRate: Kyber.getExpectedRate AAVE=>ETH if redeemForEth true (no-op if false)
      */
     function burn(uint256 tokenAmount, bool redeemForEth, uint minRate) public {
         require(tokenAmount > 0, "Must send xAAVE");
