@@ -20,18 +20,16 @@ contract MockKyberProxy {
             IERC20(aaveAddress).transfer(msg.sender, amountToSend);
         }
     }
-    function swapTokenToEther(ERC20 token, uint tokenQty, uint minRate) external payable returns(uint) {
+    function swapTokenToEther(ERC20 token, uint tokenQty, uint minRate) external payable returns(uint returnAmount) {
         if(token == ERC20(aaveAddress)){
             IERC20(aaveAddress).transferFrom(msg.sender, address(this), tokenQty);
-            msg.sender.transfer(tokenQty/ ethAave);
+            returnAmount = tokenQty/ ethAave;
+            msg.sender.transfer(returnAmount);
         }
     }
 
     function swapTokenToToken(ERC20 src, uint srcAmount, ERC20 dest, uint minConversionRate) public returns(uint){
-        // if(src == ERC20(wethAddress) && dest == ERC20(susdAddress)){
-        //     IERC20(wethAddress).transferFrom(msg.sender, address(this), srcAmount);
-        //     IERC20(susdAddress).transfer(msg.sender, srcAmount.mul(ethUsd));
-        // }
+
     }
 
     receive() external payable {

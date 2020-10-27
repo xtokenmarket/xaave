@@ -31,6 +31,8 @@ interface IKyberNetworkProxy {
         ERC20 dest,
         uint256 minConversionRate
     ) external returns (uint256);
+
+    function swapTokenToEther(ERC20 token, uint tokenQty, uint minRate) external payable returns(uint);
 }
 
 interface IStakedAave {
@@ -183,8 +185,9 @@ contract xAAVE is ERC20, Pausable, Ownable {
      * @dev Burn xAAVE tokens
      * @notice Will fail if redemption value exceeds available liquidity
      * @param redeemAmount: xAAVE to redeem
+     * @param redeemForEth: if true, redeem xAAVE for ETH
      */
-    function burn(uint256 tokenAmount) public {
+    function burn(uint256 tokenAmount, bool redeemForEth, uint minRate) public {
         require(tokenAmount > 0, "Must send xAAVE");
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
@@ -194,10 +197,16 @@ contract xAAVE is ERC20, Pausable, Ownable {
         require(proRataAave <= bufferBalance, "Insufficient exit liquidity");
 
         uint256 fee = _calculateFee(proRataAave, feeDivisors.burnFee);
-        _incrementWithdrawableAaveFees(fee);
-
         super._burn(msg.sender, tokenAmount);
-        aave.transfer(msg.sender, proRataAave.sub(fee));
+
+        if(redeemForEth){
+            uint256 ethRedemptionValue = kyberProxy.swapTokenToEther(ERC20(address(aave)), proRataAave.sub(fee), minRate);
+            (bool success, ) = msg.sender.call.value(ethRedemptionValue)("");
+            require(success, "Transfer failed");
+        } else {
+            _incrementWithdrawableAaveFees(fee);
+            aave.transfer(msg.sender, proRataAave.sub(fee));
+        }
     }
 
     /* ========================================================================================= */

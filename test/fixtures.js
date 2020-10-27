@@ -21,7 +21,7 @@ async function xaaveFixture(provider, [wallet, cosigner1, cosigner2]) {
 	const kyber = await deployContract(wallet, KyberProxy, [ETH_ADDRESS, aave.address]);
 
 	// set up state
-	await aave.transfer(kyber.address, utils.parseEther('10'));
+	await aave.transfer(kyber.address, utils.parseEther('500'));
 	await aave.transfer(stakedAave.address, utils.parseEther('10'));
 
 	// xAAVE
@@ -52,6 +52,7 @@ async function xaaveFixture(provider, [wallet, cosigner1, cosigner2]) {
 	);
 
 	await xaaveProxyCast.approveStakingContract();
+	await xaaveProxyCast.approveKyberContract(aave.address);
 
 	return {
 		ETH_ADDRESS,
