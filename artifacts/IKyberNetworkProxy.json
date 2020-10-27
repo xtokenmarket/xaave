@@ -29,6 +29,35 @@
       "inputs": [
         {
           "internalType": "contract ERC20UpgradeSafe",
+          "name": "token",
+          "type": "address"
+        },
+        {
+          "internalType": "uint256",
+          "name": "tokenQty",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "minRate",
+          "type": "uint256"
+        }
+      ],
+      "name": "swapTokenToEther",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "payable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "contract ERC20UpgradeSafe",
           "name": "src",
           "type": "address"
         },

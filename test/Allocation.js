@@ -37,7 +37,7 @@ describe('xAAVE: Allocation', async () => {
 		const bufferTarget = utils.bigNumberify(20)
 		const supply = await xaave.totalSupply()
 		const tokensToBurn = utils.bigNumberify(supply).div(utils.bigNumberify(100))
-		await xaave.burn(tokensToBurn)
+		await xaave.burn(tokensToBurn, false, 0)
 
 		const bufferBalanceBefore = await xaave.getBufferBalance();
 		const totalBalanceBefore = await xaave.getFundHoldings()

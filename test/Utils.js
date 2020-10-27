@@ -83,5 +83,30 @@ describe('xAAVE: Utils', async () => {
 		expect(contractBalAfter).to.be.equal(0)
 	});
 
-	
+	it('should allow admin to collect fees', async () => {
+		await xaave.mint('0', { value: utils.parseEther('1') });
+		const aaveAmount = utils.parseEther('10');
+		await aave.approve(xaave.address, aaveAmount);
+		await xaave.mintWithToken(aaveAmount);
+
+        const adminEthBalanceBefore = await provider.getBalance(wallet.address)
+        const adminAaveBalanceBefore = await aave.balanceOf(wallet.address)
+        const contractEthFeeBalBefore = await provider.getBalance(xaave.address)
+		const contractAaveFeeBalBefore = await xaave.withdrawableAaveFees()
+
+		expect(contractEthFeeBalBefore).to.be.gt(0)
+		expect(contractAaveFeeBalBefore).to.be.gt(0)
+
+		await xaave.withdrawFees()
+		
+        const adminEthBalanceAfter = await provider.getBalance(wallet.address)
+		const adminAaveBalanceAfter = await aave.balanceOf(wallet.address)
+        const contractEthFeeBalAfter = await provider.getBalance(xaave.address)
+		const contractAaveFeeBalAfter = await xaave.withdrawableAaveFees()
+
+		expect(adminEthBalanceAfter).to.be.gt(adminEthBalanceBefore)
+		expect(adminAaveBalanceAfter).to.be.gt(adminAaveBalanceBefore)
+		expect(contractEthFeeBalAfter).to.be.equal(0)
+		expect(contractAaveFeeBalAfter).to.be.equal(0)
+	});
 });

@@ -69,6 +69,7 @@ async function main() {
 	);
 
     await xaaveProxyCast.approveStakingContract();
+    await xaaveProxyCast.approveKyberContract(ADDRESSES['aave'][network]);
     console.log('xaaveProxy', xaaveProxyCast.address);
 }
 
