@@ -11,6 +11,12 @@ module.exports = {
 			accounts: [`0x${process.env.KOVAN_PRIVATE_KEY}`],
 			gasPrice: 20000000000,
 		},
+		mainnet: {
+			url: `https://mainnet.infura.io/v3/${process.env.INFURA_PROJECT_ID}`,
+			accounts: [`0x${process.env.MAINNET_PRIVATE_KEY}`],
+			gasPrice: 25000000000,
+			// 25000000000 == 25 gwei
+		},
 	},
 	test: {
 		gas: 8000000,

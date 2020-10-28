@@ -1,6 +1,7 @@
 const ADDRESSES = {
 	aave: {
 		kovan: '0xb597cd8d3217ea6477232f9217fa70837ff667af',
+        mainnet: '0x7fc66500c84a76ad7e9c93437bfc5ac33e2ddae9'
     },
     votingAave: {
         kovan: '0x690eAcA024935Aaff9B14b9FF9e9C8757a281f3C',
@@ -16,19 +17,24 @@ const ADDRESSES = {
 	},
 	kyberProxy: {
 		kovan: '0x692f391bCc85cefCe8C237C01e1f636BbD70EA4D',
+        mainnet: '0x818E6FECD516Ecc3849DAf6845e3EC868087B755'
     },
     proxyAdmin: {
-        kovan: '0x803428e38DBFDf2EB25D94B538A1CFc395E66615'
+        kovan: '0x803428e38DBFDf2EB25D94B538A1CFc395E66615',
+        mainnet: ''
     },
 	cosigner1: {
 		kovan: '0x885583955F14970CbC0046B91297e9915f4DE6E4',
+        mainnet: ''
 	},
 	cosigner2: {
 		kovan: '0x5314736b4b7778aC25be9afb3819c4ABF4FBEaEA',
+        mainnet: ''
 	},
 };
 
 const network = 'kovan';
+// const network = 'mainnet';
 
 async function main() {
 	const [deployer, cosigner1, cosigner2] = await ethers.getSigners();
@@ -63,7 +69,6 @@ async function main() {
 		'500',
 		'500',
 		'100',
-		ADDRESSES['proxyAdmin'][network],
         'xAAVEa',
         'Samuelson'
 	);
