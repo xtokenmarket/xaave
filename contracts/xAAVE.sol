@@ -91,7 +91,6 @@ contract xAAVE is ERC20, Pausable, Ownable {
         uint256 _mintFeeDivisor,
         uint256 _burnFeeDivisor,
         uint256 _claimFeeDivisor,
-        address _ownerAddress,
         string memory _symbol,
         string memory _mandate
     ) public initializer {
