@@ -1,4 +1,4 @@
-pragma solidity >=0.6.0;
+pragma solidity 0.6.2;
 
 contract Pausable {
     /**
@@ -11,21 +11,7 @@ contract Pausable {
      */
     event Unpaused(address account);
 
-    bool private _paused;
-
-    /**
-     * @dev Initializes the contract in unpaused state.
-     */
-    constructor () internal {
-        _paused = false;
-    }
-
-    /**
-     * @dev Returns true if the contract is paused, and false otherwise.
-     */
-    function paused() public view returns (bool) {
-        return _paused;
-    }
+    bool public paused;
 
     /**
      * @dev Modifier to make a function callable only when the contract is not paused.
@@ -35,7 +21,7 @@ contract Pausable {
      * - The contract must not be paused.
      */
     modifier whenNotPaused() {
-        require(!_paused, "Pausable: paused");
+        require(!paused, "Pausable: paused");
         _;
     }
 
@@ -47,7 +33,7 @@ contract Pausable {
      * - The contract must be paused.
      */
     modifier whenPaused() {
-        require(_paused, "Pausable: not paused");
+        require(paused, "Pausable: not paused");
         _;
     }
 
@@ -59,7 +45,7 @@ contract Pausable {
      * - The contract must not be paused.
      */
     function _pause() internal virtual whenNotPaused {
-        _paused = true;
+        paused = true;
         emit Paused(msg.sender);
     }
 
@@ -71,7 +57,7 @@ contract Pausable {
      * - The contract must be paused.
      */
     function _unpause() internal virtual whenPaused {
-        _paused = false;
+        paused = false;
         emit Unpaused(msg.sender);
     }
 }

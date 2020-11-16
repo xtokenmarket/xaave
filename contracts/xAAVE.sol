@@ -48,11 +48,11 @@ interface IStakedAave {
 contract xAAVE is ERC20, Pausable, Ownable {
     using SafeMath for uint256;
 
-    uint256 constant DEC_18 = 1e18;
-    uint256 constant MAX_UINT = 2**256 - 1;
-    uint256 constant AAVE_BUFFER_TARGET = 20; // 5% target
-    uint256 constant INITIAL_SUPPLY_MULTIPLIER = 100;
-    uint256 constant LIQUIDATION_TIME_PERIOD = 4 weeks;
+    uint256 private constant DEC_18 = 1e18;
+    uint256 private constant MAX_UINT = 2**256 - 1;
+    uint256 private constant AAVE_BUFFER_TARGET = 20; // 5% target
+    uint256 private constant INITIAL_SUPPLY_MULTIPLIER = 100;
+    uint256 public constant LIQUIDATION_TIME_PERIOD = 4 weeks;
 
     uint256 public withdrawableAaveFees;
     uint256 public adminActiveTimestamp;
@@ -68,11 +68,11 @@ contract xAAVE is ERC20, Pausable, Ownable {
     IStakedAave private stakedAave;
     IAaveProtoGovernance private governance;
 
-    IKyberNetworkProxy kyberProxy;
+    IKyberNetworkProxy private kyberProxy;
 
-    bool cooldownActivated;
+    bool public cooldownActivated;
 
-    string mandate;
+    string public mandate;
 
     struct FeeDivisors {
         uint256 mintFee;
@@ -127,22 +127,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
         uint256 incrementalAave = kyberProxy.swapEtherToToken.value(
             msg.value.sub(fee)
         )(ERC20(address(aave)), minRate);
-
-        uint256 totalSupply = totalSupply();
-        uint256 allocationToStake = _calculateAllocationToStake(
-            bufferBalance,
-            incrementalAave,
-            stakedBalance,
-            totalSupply
-        );
-        uint256 mintAmount = calculateMintAmount(
-            incrementalAave,
-            aaveHoldings,
-            totalSupply
-        );
-
-        _stake(allocationToStake);
-        return super._mint(msg.sender, mintAmount);
+        return _mintInternal(bufferBalance, stakedBalance, incrementalAave);
     }
 
     /*
@@ -162,18 +147,22 @@ contract xAAVE is ERC20, Pausable, Ownable {
         _incrementWithdrawableAaveFees(fee);
 
         uint256 incrementalAave = aaveAmount.sub(fee);
-        uint256 totalSupply = totalSupply();
+        return _mintInternal(bufferBalance, stakedBalance, incrementalAave);
+    }
 
+    function _mintInternal(uint _bufferBalance, uint _stakedBalance, uint _incrementalAave) private {
+        uint256 totalSupply = totalSupply();
         uint256 allocationToStake = _calculateAllocationToStake(
-            bufferBalance,
-            incrementalAave,
-            stakedBalance,
+            _bufferBalance,
+            _incrementalAave,
+            _stakedBalance,
             totalSupply
         );
         _stake(allocationToStake);
 
+        uint256 aaveHoldings = _bufferBalance.add(_stakedBalance);
         uint256 mintAmount = calculateMintAmount(
-            incrementalAave,
+            _incrementalAave,
             aaveHoldings,
             totalSupply
         );
@@ -508,21 +497,21 @@ contract xAAVE is ERC20, Pausable, Ownable {
     /*                                           Utils                                           */
     /* ========================================================================================= */
 
-    function pauseContract() public onlyOwner returns (bool) {
+    function pauseContract() public onlyOwnerOrManager returns (bool) {
         _pause();
         return true;
     }
 
-    function unpauseContract() public onlyOwner returns (bool) {
+    function unpauseContract() public onlyOwnerOrManager returns (bool) {
         _unpause();
         return true;
     }
 
-    function approveStakingContract() public onlyOwner {
+    function approveStakingContract() public onlyOwnerOrManager {
         aave.approve(address(stakedAave), MAX_UINT);
     }
 
-    function approveKyberContract(address _token) public onlyOwner {
+    function approveKyberContract(address _token) public onlyOwnerOrManager {
         IERC20(_token).approve(address(kyberProxy), MAX_UINT);
     }
 
