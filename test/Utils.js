@@ -16,7 +16,7 @@ describe('xAAVE: Utils', async () => {
 	});
 
 	it('should not allow non-admin to pause', async () => {
-		await expect(xaave.connect(user2).pauseContract()).to.be.revertedWith('Ownable: caller is not the owner');
+		await expect(xaave.connect(user2).pauseContract()).to.be.revertedWith('Non-admin caller');
 	});
 
 	it('should allow admin to pause', async () => {
@@ -26,7 +26,7 @@ describe('xAAVE: Utils', async () => {
 	});
 
 	it('should not allow non-admin to unpause', async () => {
-		await expect(xaave.connect(user2).unpauseContract()).to.be.revertedWith('Ownable: caller is not the owner');
+		await expect(xaave.connect(user2).unpauseContract()).to.be.revertedWith('Non-admin caller');
 	});
 
 	it('should allow admin to unpause', async () => {
