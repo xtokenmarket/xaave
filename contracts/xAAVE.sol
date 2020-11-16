@@ -150,7 +150,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
         return _mintInternal(bufferBalance, stakedBalance, incrementalAave);
     }
 
-    function _mintInternal(uint _bufferBalance, uint _stakedBalance, uint _incrementalAave) private {
+    function _mintInternal(uint _bufferBalance, uint _stakedBalance, uint _incrementalAave) internal {
         uint256 totalSupply = totalSupply();
         uint256 allocationToStake = _calculateAllocationToStake(
             _bufferBalance,
@@ -548,5 +548,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
         _;
     }
 
-    receive() external payable {}
+    receive() external payable {
+        require(msg.sender != tx.origin, "Errant ETH deposit");
+    }
 }
