@@ -2,6 +2,7 @@ pragma solidity 0.6.2;
 
 import "@openzeppelin/contracts-ethereum-package/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/SafeERC20.sol";
 import {
     OwnableUpgradeSafe as Ownable
 } from "@openzeppelin/contracts-ethereum-package/contracts/access/Ownable.sol";
@@ -32,7 +33,11 @@ interface IKyberNetworkProxy {
         uint256 minConversionRate
     ) external returns (uint256);
 
-    function swapTokenToEther(ERC20 token, uint tokenQty, uint minRate) external payable returns(uint);
+    function swapTokenToEther(
+        ERC20 token,
+        uint256 tokenQty,
+        uint256 minRate
+    ) external payable returns (uint256);
 }
 
 interface IStakedAave {
@@ -47,6 +52,7 @@ interface IStakedAave {
 
 contract xAAVE is ERC20, Pausable, Ownable {
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
     uint256 private constant DEC_18 = 1e18;
     uint256 private constant MAX_UINT = 2**256 - 1;
@@ -141,7 +147,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
         uint256 aaveHoldings = bufferBalance.add(stakedBalance);
 
-        aave.transferFrom(msg.sender, address(this), aaveAmount);
+        aave.safeTransferFrom(msg.sender, address(this), aaveAmount);
 
         uint256 fee = _calculateFee(aaveAmount, feeDivisors.mintFee);
         _incrementWithdrawableAaveFees(fee);
@@ -150,7 +156,11 @@ contract xAAVE is ERC20, Pausable, Ownable {
         return _mintInternal(bufferBalance, stakedBalance, incrementalAave);
     }
 
-    function _mintInternal(uint _bufferBalance, uint _stakedBalance, uint _incrementalAave) internal {
+    function _mintInternal(
+        uint256 _bufferBalance,
+        uint256 _stakedBalance,
+        uint256 _incrementalAave
+    ) internal {
         uint256 totalSupply = totalSupply();
         uint256 allocationToStake = _calculateAllocationToStake(
             _bufferBalance,
@@ -176,7 +186,11 @@ contract xAAVE is ERC20, Pausable, Ownable {
      * @param redeemForEth: if true, redeem xAAVE for ETH
      * @param minRate: Kyber.getExpectedRate AAVE=>ETH if redeemForEth true (no-op if false)
      */
-    function burn(uint256 tokenAmount, bool redeemForEth, uint minRate) public {
+    function burn(
+        uint256 tokenAmount,
+        bool redeemForEth,
+        uint256 minRate
+    ) public {
         require(tokenAmount > 0, "Must send xAAVE");
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
@@ -188,13 +202,17 @@ contract xAAVE is ERC20, Pausable, Ownable {
         uint256 fee = _calculateFee(proRataAave, feeDivisors.burnFee);
         super._burn(msg.sender, tokenAmount);
 
-        if(redeemForEth){
-            uint256 ethRedemptionValue = kyberProxy.swapTokenToEther(ERC20(address(aave)), proRataAave.sub(fee), minRate);
+        if (redeemForEth) {
+            uint256 ethRedemptionValue = kyberProxy.swapTokenToEther(
+                ERC20(address(aave)),
+                proRataAave.sub(fee),
+                minRate
+            );
             (bool success, ) = msg.sender.call.value(ethRedemptionValue)("");
             require(success, "Transfer failed");
         } else {
             _incrementWithdrawableAaveFees(fee);
-            aave.transfer(msg.sender, proRataAave.sub(fee));
+            aave.safeTransfer(msg.sender, proRataAave.sub(fee));
         }
     }
 
@@ -490,7 +508,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
 
         uint256 aaveFees = withdrawableAaveFees;
         withdrawableAaveFees = 0;
-        aave.transfer(msg.sender, aaveFees);
+        aave.safeTransfer(msg.sender, aaveFees);
     }
 
     /* ========================================================================================= */
@@ -508,11 +526,11 @@ contract xAAVE is ERC20, Pausable, Ownable {
     }
 
     function approveStakingContract() public onlyOwnerOrManager {
-        aave.approve(address(stakedAave), MAX_UINT);
+        aave.safeApprove(address(stakedAave), MAX_UINT);
     }
 
     function approveKyberContract(address _token) public onlyOwnerOrManager {
-        IERC20(_token).approve(address(kyberProxy), MAX_UINT);
+        IERC20(_token).safeApprove(address(kyberProxy), MAX_UINT);
     }
 
     /*
@@ -536,7 +554,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
     function withdrawNativeToken() public onlyOwnerOrManager {
         uint256 tokenBal = balanceOf(address(this));
         if (tokenBal > 0) {
-            IERC20(address(this)).transfer(msg.sender, tokenBal);
+            IERC20(address(this)).safeTransfer(msg.sender, tokenBal);
         }
     }
 
