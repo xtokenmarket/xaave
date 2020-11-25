@@ -63,10 +63,6 @@ contract xAAVE is ERC20, Pausable, Ownable {
     uint256 public withdrawableAaveFees;
     uint256 public adminActiveTimestamp;
 
-    address constant ZERO_ADDRESS = address(0);
-    address
-        private constant ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
-
     address private manager;
 
     IERC20 private aave;
