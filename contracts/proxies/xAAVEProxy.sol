@@ -109,7 +109,7 @@ contract xAAVEProxy {
     function confirmAdminTransfer() public onlyProxyAdmin {
         address newAdminAddress = proposedNewAdmin();
         require(newAdminAddress != address(0), "new Admin address cannot be address(0)");
-        require(proposedNewAdminTimestamp() <= block.timestamp, "admin change can only be submitted after 1 day");
+        require(proposedNewAdminTimestamp() + 1 days <= block.timestamp, "admin change can only be submitted after 1 day");
         setProxyAdmin(newAdminAddress);
         setProposedAdmin(address(0)); 
     }

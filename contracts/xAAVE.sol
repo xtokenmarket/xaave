@@ -122,7 +122,6 @@ contract xAAVE is ERC20, Pausable, Ownable {
         require(msg.value > 0, "Must send ETH");
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
-        uint256 aaveHoldings = bufferBalance.add(stakedBalance);
 
         uint256 fee = _calculateFee(msg.value, feeDivisors.mintFee);
 
@@ -141,7 +140,6 @@ contract xAAVE is ERC20, Pausable, Ownable {
         require(aaveAmount > 0, "Must send AAVE");
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
-        uint256 aaveHoldings = bufferBalance.add(stakedBalance);
 
         aave.safeTransferFrom(msg.sender, address(this), aaveAmount);
 
