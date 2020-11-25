@@ -209,29 +209,25 @@ contract xAAVEProxy {
      * @dev Fallback function forwards all transactions and returns all received return data.
      */
     fallback() external payable {
-        bytes32 position = IMPLEMENTATION_POSITION;
+        address impl = implementation();
         // solium-disable-next-line security/no-inline-assembly
         assembly {
-            let masterCopy := and(
-                sload(position),
-                0xffffffffffffffffffffffffffffffffffffffff
-            )
-            let ptr := mload(0x40)
-            calldatacopy(ptr, 0, calldatasize())
-            let success := delegatecall(
-                gas(),
-                masterCopy,
-                ptr,
-                calldatasize(),
-                0,
-                0
-            )
-            returndatacopy(ptr, 0, returndatasize())
-            switch eq(success, 0)
-                case 1 {
-                    revert(ptr, returndatasize())
-                }
-            return(ptr, returndatasize())
+            // Copy msg.data. We take full control of memory in this inline assembly
+            // block because it will not return to Solidity code. We overwrite the
+            // Solidity scratch pad at memory position 0.
+            calldatacopy(0, 0, calldatasize())
+
+            // Call the implementation.
+            // out and outsize are 0 because we don't know the size yet.
+            let result := delegatecall(gas(), impl, 0, calldatasize(), 0, 0)
+
+            // Copy the returned data.
+            returndatacopy(0, 0, returndatasize())
+
+            switch result
+            // delegatecall returns 0 on error.
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
         }
     }
 }

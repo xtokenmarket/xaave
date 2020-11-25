@@ -52,16 +52,6 @@ describe('xAAVE: Utils', async () => {
 	it('should be able to vote in governance', async () => {
 		await expect(xaave.connect(user1).claim()).to.be.revertedWith('Non-admin caller');
     });
-    
-	it('should be able to approve staking contract', async () => {
-        await xaave.approveStakingContract()
-        assert(true)
-	});
-
-	it('should be able to approve Kyber contract', async () => {
-        await xaave.approveKyberContract(aave.address)
-        assert(true)
-	});
 
 	it('should be able to certify admin', async () => {
         const adminTimestampBefore = await xaave.adminActiveTimestamp()

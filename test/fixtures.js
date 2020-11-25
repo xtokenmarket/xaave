@@ -59,6 +59,8 @@ async function xaaveFixture(provider, [wallet, cosigner1, cosigner2]) {
 		stakedAave,
 		kyber,
 		xaave: xaaveProxyCast,
+		xaaveProxy,
+		implementation: xaave.address
 	};
 }
 
