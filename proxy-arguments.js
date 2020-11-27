@@ -1,9 +1,9 @@
 const { ADDRESSES } = require('./scripts/deploy')
-// const network = 'mainnet'
-const network = 'kovan'
+const network = 'mainnet'
+// const network = 'kovan'
 
 module.exports = [
-    '0x1473157DF46708F17bdA18C306AabE90Af41a0a1',
+    '0xD25363E55F0D7fbeCDe932A0b506e42A4A291C37',
     ADDRESSES['proxyAdmin'][network],
     ADDRESSES['cosigner1'][network], 
     ADDRESSES['cosigner2'][network] 

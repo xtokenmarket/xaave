@@ -17,27 +17,27 @@ const ADDRESSES = {
 	},
 	kyberProxy: {
 		kovan: '0x692f391bCc85cefCe8C237C01e1f636BbD70EA4D',
-		mainnet: '0x818E6FECD516Ecc3849DAf6845e3EC868087B755',
+		mainnet: '0x9AAb3f75489902f3a48495025729a0AF77d4b11e',
 	},
 	proxyAdmin: {
 		kovan: '0x803428e38DBFDf2EB25D94B538A1CFc395E66615',
-		mainnet: '',
+		mainnet: '0x38138586AedB29B436eAB16105b09c317F5a79dd',
 	},
 	cosigner1: {
 		kovan: '0x885583955F14970CbC0046B91297e9915f4DE6E4',
-		mainnet: '',
+		mainnet: '0x4c19d4c563A701b5A51809369a76e5391C0f4034',
 	},
 	cosigner2: {
 		kovan: '0x5314736b4b7778aC25be9afb3819c4ABF4FBEaEA',
-		mainnet: '',
+		mainnet: '0xFe072d936072107ef9Ab409cC523B0753EfAbD01',
 	},
 };
 
-const network = 'kovan';
-// const network = 'mainnet';
+// const network = 'kovan';
+const network = 'mainnet';
 
 async function main() {
-	const [deployer, cosigner1, cosigner2] = await ethers.getSigners();
+	const [deployer] = await ethers.getSigners();
 
 	console.log('Deploying contracts with the account:', await deployer.getAddress());
 
@@ -57,6 +57,7 @@ async function main() {
 		ADDRESSES['cosigner2'][network]
 	);
 	await xaaveProxy.deployed();
+	console.log('xaaveProxy', xaaveProxy.address);
 
 	const xaaveProxyCast = await ethers.getContractAt('xAAVE', xaaveProxy.address, deployer);
 
@@ -70,12 +71,14 @@ async function main() {
 		'500',
 		'100',
 		'xAAVEa',
-		'Samuelson'
+		'Buchanan'
 	);
-
+	console.log('initialized')
+	
 	await xaaveProxyCast.approveStakingContract();
+	console.log('staking contract approved')
 	await xaaveProxyCast.approveKyberContract(ADDRESSES['aave'][network]);
-	console.log('xaaveProxy', xaaveProxyCast.address);
+	console.log('kyber contract approved')
 }
 
 main()
