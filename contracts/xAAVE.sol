@@ -192,19 +192,24 @@ contract xAAVE is ERC20, Pausable, Ownable {
         uint256 proRataAave = aaveHoldings.mul(tokenAmount).div(totalSupply());
 
         require(proRataAave <= bufferBalance, "Insufficient exit liquidity");
-
-        uint256 fee = _calculateFee(proRataAave, feeDivisors.burnFee);
         super._burn(msg.sender, tokenAmount);
 
         if (redeemForEth) {
             uint256 ethRedemptionValue = kyberProxy.swapTokenToEther(
                 ERC20(address(aave)),
-                proRataAave.sub(fee),
+                proRataAave,
                 minRate
             );
-            (bool success, ) = msg.sender.call.value(ethRedemptionValue)("");
+            uint256 fee = _calculateFee(
+                ethRedemptionValue,
+                feeDivisors.burnFee
+            );
+            (bool success, ) = msg.sender.call.value(
+                ethRedemptionValue.sub(fee)
+            )("");
             require(success, "Transfer failed");
         } else {
+            uint256 fee = _calculateFee(proRataAave, feeDivisors.burnFee);
             _incrementWithdrawableAaveFees(fee);
             aave.safeTransfer(msg.sender, proRataAave.sub(fee));
         }
