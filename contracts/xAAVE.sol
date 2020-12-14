@@ -576,16 +576,22 @@ contract xAAVE is ERC20, Pausable, Ownable {
     }
 
     function setVotingAaveAddress(IERC20 _votingAave) public onlyOwner {
-        votingAave = _votingAave;     
+        votingAave = _votingAave;
     }
 
-    function setGovernanceV2Address(IAaveGovernanceV2 _governanceV2) public onlyOwner {
-        if(address(governanceV2) == address(0)){
-            governanceV2 = _governanceV2;     
+    function setGovernanceV2Address(IAaveGovernanceV2 _governanceV2)
+        public
+        onlyOwner
+    {
+        if (address(governanceV2) == address(0)) {
+            governanceV2 = _governanceV2;
         }
     }
 
-    function voteV2(uint256 proposalId, bool support) public onlyOwnerOrManager {
+    function voteV2(uint256 proposalId, bool support)
+        public
+        onlyOwnerOrManager
+    {
         governanceV2.submitVote(proposalId, support);
     }
 }
