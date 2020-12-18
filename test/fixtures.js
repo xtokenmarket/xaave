@@ -6,6 +6,7 @@ const xAAVE = require('../artifacts/xAAVE.json');
 const xAAVEProxy = require('../artifacts/xAAVEProxy.json');
 const AAVE = require('../artifacts/MockAAVE.json');
 const ProtoGovernance = require('../artifacts/MockProtoGovernance.json');
+const GovernanceV2 = require('../artifacts/MockGovernanceV2.json');
 const VotingAAVE = require('../artifacts/MockVotingAave.json');
 const StakedAAVE = require('../artifacts/MockStakedAave.json');
 const KyberProxy = require('../artifacts/MockKyberProxy.json');
@@ -23,6 +24,9 @@ async function xaaveFixture(provider, [wallet, cosigner1, cosigner2]) {
 	// set up state
 	await aave.transfer(kyber.address, utils.parseEther('500'));
 	await aave.transfer(stakedAave.address, utils.parseEther('10'));
+
+	// governance
+	const governanceV2 = await deployContract(wallet, GovernanceV2)
 
 	// xAAVE
 	const votingAave = await deployContract(wallet, VotingAAVE)
@@ -60,7 +64,8 @@ async function xaaveFixture(provider, [wallet, cosigner1, cosigner2]) {
 		kyber,
 		xaave: xaaveProxyCast,
 		xaaveProxy,
-		implementation: xaave.address
+		implementation: xaave.address,
+		governanceV2
 	};
 }
 

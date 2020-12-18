@@ -50,6 +50,10 @@ interface IStakedAave {
     function claimRewards(address to, uint256 amount) external;
 }
 
+interface IAaveGovernanceV2 {
+    function submitVote(uint256 proposalId, bool support) external;
+}
+
 contract xAAVE is ERC20, Pausable, Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -83,6 +87,8 @@ contract xAAVE is ERC20, Pausable, Ownable {
     }
 
     FeeDivisors public feeDivisors;
+
+    IAaveGovernanceV2 private governanceV2;
 
     function initialize(
         IERC20 _aave,
@@ -567,5 +573,25 @@ contract xAAVE is ERC20, Pausable, Ownable {
 
     receive() external payable {
         require(msg.sender != tx.origin, "Errant ETH deposit");
+    }
+
+    function setVotingAaveAddress(IERC20 _votingAave) public onlyOwner {
+        votingAave = _votingAave;
+    }
+
+    function setGovernanceV2Address(IAaveGovernanceV2 _governanceV2)
+        public
+        onlyOwner
+    {
+        if (address(governanceV2) == address(0)) {
+            governanceV2 = _governanceV2;
+        }
+    }
+
+    function voteV2(uint256 proposalId, bool support)
+        public
+        onlyOwnerOrManager
+    {
+        governanceV2.submitVote(proposalId, support);
     }
 }
