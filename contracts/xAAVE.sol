@@ -90,6 +90,12 @@ contract xAAVE is ERC20, Pausable, Ownable {
 
     IAaveGovernanceV2 private governanceV2;
 
+    address private manager2;
+
+    mapping(address => bool) private whitelist;
+
+    uint256 private constant AFFILIATE_FEE_DIVISOR = 4;
+
     function initialize(
         IERC20 _aave,
         IERC20 _votingAave,
@@ -141,8 +147,12 @@ contract xAAVE is ERC20, Pausable, Ownable {
      * @dev Mint xAAVE using AAVE
      * @notice Must run ERC20 approval first
      * @param aaveAmount: AAVE to contribute
+     * @param affiliate: optional recipient of 25% of fees
      */
-    function mintWithToken(uint256 aaveAmount) public whenNotPaused {
+    function mintWithToken(uint256 aaveAmount, address affiliate)
+        public
+        whenNotPaused
+    {
         require(aaveAmount > 0, "Must send AAVE");
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
@@ -150,7 +160,16 @@ contract xAAVE is ERC20, Pausable, Ownable {
         aave.safeTransferFrom(msg.sender, address(this), aaveAmount);
 
         uint256 fee = _calculateFee(aaveAmount, feeDivisors.mintFee);
-        _incrementWithdrawableAaveFees(fee);
+
+        if (affiliate == address(0)) {
+            _incrementWithdrawableAaveFees(fee);
+        } else {
+            require(whitelist[affiliate], "Invalid address");
+
+            uint256 affiliateFee = fee.div(AFFILIATE_FEE_DIVISOR);
+            aave.safeTransfer(affiliate, affiliateFee);
+            _incrementWithdrawableAaveFees(fee.sub(affiliateFee));
+        }
 
         uint256 incrementalAave = aaveAmount.sub(fee);
         return _mintInternal(bufferBalance, stakedBalance, incrementalAave);
@@ -553,6 +572,13 @@ contract xAAVE is ERC20, Pausable, Ownable {
     }
 
     /*
+     * @notice manager2 == alternative admin caller to owner
+     */
+    function setManager2(address _manager2) public onlyOwner {
+        manager2 = _manager2;
+    }
+
+    /*
      * @notice Emergency function in case of errant transfer of
      * xAAVE token directly to contract
      */
@@ -565,7 +591,9 @@ contract xAAVE is ERC20, Pausable, Ownable {
 
     modifier onlyOwnerOrManager {
         require(
-            msg.sender == owner() || msg.sender == manager,
+            msg.sender == owner() ||
+                msg.sender == manager ||
+                msg.sender == manager2,
             "Non-admin caller"
         );
         _;
@@ -593,5 +621,13 @@ contract xAAVE is ERC20, Pausable, Ownable {
         onlyOwnerOrManager
     {
         governanceV2.submitVote(proposalId, support);
+    }
+
+    function addToWhitelist(address _address) external onlyOwnerOrManager {
+        whitelist[_address] = true;
+    }
+
+    function removeFromWhitelist(address _address) external onlyOwnerOrManager {
+        whitelist[_address] = false;
     }
 }
