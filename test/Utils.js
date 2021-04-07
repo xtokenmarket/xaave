@@ -77,7 +77,7 @@ describe('xAAVE: Utils', async () => {
 		await xaave.mint('0', { value: utils.parseEther('1') });
 		const aaveAmount = utils.parseEther('10');
 		await aave.approve(xaave.address, aaveAmount);
-		await xaave.mintWithToken(aaveAmount);
+		await xaave.mintWithToken(aaveAmount, ethers.constants.AddressZero);
 
         const adminEthBalanceBefore = await provider.getBalance(wallet.address)
         const adminAaveBalanceBefore = await aave.balanceOf(wallet.address)

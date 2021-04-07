@@ -25,7 +25,7 @@ describe('xAAVE: Mint/Burn', async () => {
 		const aaveAmount = utils.parseEther('10');
 		await aave.transfer(user1.address, aaveAmount);
 		await aave.connect(user1).approve(xaave.address, aaveAmount);
-		await xaave.connect(user1).mintWithToken(aaveAmount);
+		await xaave.connect(user1).mintWithToken(aaveAmount, ethers.constants.AddressZero);
 		const xaaveBal = await xaave.balanceOf(user1.address);
 		expect(xaaveBal).to.be.gt(0);
 	});
@@ -64,6 +64,6 @@ describe('xAAVE: Mint/Burn', async () => {
 		const aaveAmount = utils.parseEther('10');
 		await aave.transfer(user1.address, aaveAmount);
 		await aave.connect(user1).approve(xaave.address, aaveAmount);
-		await expect(xaave.connect(user1).mintWithToken(aaveAmount)).to.be.revertedWith('Pausable: paused');
+		await expect(xaave.connect(user1).mintWithToken(aaveAmount, ethers.constants.AddressZero)).to.be.revertedWith('Pausable: paused');
 	});
 });

@@ -22,7 +22,7 @@ describe('xAAVE: Allocation', async () => {
         const expectedBuffer = (utils.bigNumberify(aaveAmount).sub(fee)).div(bufferTarget)
         
 		await aave.approve(xaave.address, aaveAmount);
-		await xaave.mintWithToken(aaveAmount);
+		await xaave.mintWithToken(aaveAmount, ethers.constants.AddressZero);
         
 		const bufferBalance = await xaave.getBufferBalance();
 		expect(bufferBalance).to.be.equal(expectedBuffer.toString());
@@ -47,7 +47,7 @@ describe('xAAVE: Allocation', async () => {
 
 		const aaveAmount = utils.parseEther('20');
 		await aave.approve(xaave.address, aaveAmount);
-		await xaave.mintWithToken(aaveAmount)
+		await xaave.mintWithToken(aaveAmount, ethers.constants.AddressZero)
 
 		const bufferBalanceAfter = await xaave.getBufferBalance();
 		const totalBalanceAfter = await xaave.getFundHoldings()

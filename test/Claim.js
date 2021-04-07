@@ -19,7 +19,7 @@ describe('xAAVE: Claiming', async () => {
 	it('should register an increased AAVE buffer balance on claim', async () => {
         const aaveAmount = utils.parseEther('20');
 		await aave.approve(xaave.address, aaveAmount);
-		await xaave.mintWithToken(aaveAmount);
+        await xaave.mintWithToken(aaveAmount, ethers.constants.AddressZero);
         
         const bufferBalanceBefore = await xaave.getBufferBalance();
         await xaave.claim();
@@ -30,7 +30,7 @@ describe('xAAVE: Claiming', async () => {
     it('should be callable by a non-admin address', async () => {
         const aaveAmount = utils.parseEther('20');
 		await aave.approve(xaave.address, aaveAmount);
-        await xaave.mintWithToken(aaveAmount);
+        await xaave.mintWithToken(aaveAmount, ethers.constants.AddressZero);
         
         const bufferBalanceBefore = await xaave.getBufferBalance();
         await xaave.connect(user1).claimExternal()
@@ -41,7 +41,7 @@ describe('xAAVE: Claiming', async () => {
     it('should register the correct claim fee in AAVE', async () => {
         const aaveAmount = utils.parseEther('20');
 		await aave.approve(xaave.address, aaveAmount);
-        await xaave.mintWithToken(aaveAmount);
+        await xaave.mintWithToken(aaveAmount, ethers.constants.AddressZero);
 
         const feeDivisors = await xaave.feeDivisors()
         const bufferBalanceBefore = await xaave.getBufferBalance();
