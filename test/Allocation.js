@@ -22,7 +22,6 @@ describe('xAAVE: Allocation', async () => {
         const expectedBuffer = (utils.bigNumberify(aaveAmount).sub(fee)).div(bufferTarget)
         
 		await aave.approve(xaave.address, aaveAmount);
-		console.log('ethers.constants.AddressZero', ethers.constants.AddressZero)
 		await xaave.mintWithToken(aaveAmount, ethers.constants.AddressZero);
         
 		const bufferBalance = await xaave.getBufferBalance();

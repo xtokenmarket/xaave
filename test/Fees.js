@@ -50,6 +50,15 @@ describe('xAAVE: Fees', async () => {
         
         const affiliateFeeBalance = await aave.balanceOf(user2.address)
         expect(affiliateFeeBalance).to.be.equal(totalFee.sub(expectedFeeToContract))
-
     })
+
+    it('should revert if affiliate is not whitelisted', async () => {
+        await xaave.removeFromWhitelist(user2.address)
+
+        const aaveAmount = utils.parseEther('20');
+        await aave.approve(xaave.address, aaveAmount);
+        await expect(xaave.mintWithToken(aaveAmount, user2.address)).to.be.revertedWith('Invalid address');
+    })
+
+
 })
