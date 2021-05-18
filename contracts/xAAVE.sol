@@ -11,7 +11,6 @@ import {
 } from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 
 import "./helpers/Pausable.sol";
-import "./helpers/BlockLock.sol";
 
 interface IAaveProtoGovernance {
     function submitVoteByVoter(
@@ -55,7 +54,7 @@ interface IAaveGovernanceV2 {
     function submitVote(uint256 proposalId, bool support) external;
 }
 
-contract xAAVE is ERC20, Pausable, Ownable, BlockLock {
+contract xAAVE is ERC20, Pausable, Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -96,6 +95,25 @@ contract xAAVE is ERC20, Pausable, Ownable, BlockLock {
     mapping(address => bool) private whitelist;
 
     uint256 private constant AFFILIATE_FEE_DIVISOR = 4;
+
+    
+    //  BlockLock logic ; Implements locking of mint, burn, transfer and transferFrom
+    //  functions via a notLocked modifier
+    //  Functions are locked per address. 
+
+    // how many blocks are the functions locked for
+    uint256 private constant BLOCK_LOCK_COUNT = 6;
+    // last block for which this address is timelocked
+    mapping(address => uint256) public lastLockedBlock;
+
+    modifier notLocked(address lockedAddress) {
+        require(
+            lastLockedBlock[lockedAddress] <= block.number,
+            "Function is locked for this address"
+        );
+        _;
+        lastLockedBlock[lockedAddress] = block.number + BLOCK_LOCK_COUNT;
+    }
 
     function initialize(
         IERC20 _aave,
