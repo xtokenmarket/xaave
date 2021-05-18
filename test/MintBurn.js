@@ -2,6 +2,7 @@ const { expect, assert } = require('chai');
 const { utils, ethers } = require('ethers');
 const { createFixtureLoader } = require('ethereum-waffle');
 const { xaaveFixture } = require('./fixtures');
+const { mineBlocks } = require('./helpers');
 
 describe('xAAVE: Mint/Burn', async () => {
 	const provider = waffle.provider;
@@ -36,7 +37,9 @@ describe('xAAVE: Mint/Burn', async () => {
 		const bnBal = utils.bigNumberify(xaaveBal);
 
 		const xaaveToRedeem = bnBal.div(utils.bigNumberify(100));
+		await mineBlocks(5);
 		await xaave.burn(xaaveToRedeem.toString(), false, 0);
+		await mineBlocks(5);
 
 		const aaveBalAfter = await aave.balanceOf(wallet.address);
 		expect(aaveBalAfter).to.be.gt(aaveBalBefore);
@@ -44,6 +47,7 @@ describe('xAAVE: Mint/Burn', async () => {
 
 	it('should burn xAAVE tokens for ETH', async () => {
 		await xaave.mint('0', { value: utils.parseEther('5') });
+		await mineBlocks(5);
 		const ethBalBefore = await provider.getBalance(wallet.address);
 		const xaaveBal = await xaave.balanceOf(wallet.address);
 		const bnBal = utils.bigNumberify(xaaveBal);
