@@ -11,6 +11,7 @@ import {
 } from "@openzeppelin/contracts-ethereum-package/contracts/token/ERC20/ERC20.sol";
 
 import "./helpers/Pausable.sol";
+import "./helpers/BlockLock.sol";
 
 interface IAaveProtoGovernance {
     function submitVoteByVoter(
@@ -54,7 +55,7 @@ interface IAaveGovernanceV2 {
     function submitVote(uint256 proposalId, bool support) external;
 }
 
-contract xAAVE is ERC20, Pausable, Ownable {
+contract xAAVE is ERC20, Pausable, Ownable, BlockLock {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -130,7 +131,12 @@ contract xAAVE is ERC20, Pausable, Ownable {
      * @dev Mint xAAVE using ETH
      * @param minRate: Kyber min rate ETH=>AAVE
      */
-    function mint(uint256 minRate) public payable whenNotPaused {
+    function mint(uint256 minRate)
+        public
+        payable
+        whenNotPaused
+        notLocked(msg.sender)
+    {
         require(msg.value > 0, "Must send ETH");
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
@@ -152,6 +158,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
     function mintWithToken(uint256 aaveAmount, address affiliate)
         public
         whenNotPaused
+        notLocked(msg.sender)
     {
         require(aaveAmount > 0, "Must send AAVE");
 
@@ -209,7 +216,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
         uint256 tokenAmount,
         bool redeemForEth,
         uint256 minRate
-    ) public {
+    ) public notLocked(msg.sender) {
         require(tokenAmount > 0, "Must send xAAVE");
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
@@ -238,6 +245,23 @@ contract xAAVE is ERC20, Pausable, Ownable {
             _incrementWithdrawableAaveFees(fee);
             aave.safeTransfer(msg.sender, proRataAave.sub(fee));
         }
+    }
+
+    function transfer(address recipient, uint256 amount)
+        public
+        override
+        notLocked(msg.sender)
+        returns (bool)
+    {
+        return super.transfer(recipient, amount);
+    }
+
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public override notLocked(sender) returns (bool) {
+        return super.transferFrom(sender, recipient, amount);
     }
 
     /* ========================================================================================= */

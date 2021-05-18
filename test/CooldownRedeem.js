@@ -2,7 +2,7 @@ const { expect, assert } = require('chai');
 const { utils, ethers } = require('ethers');
 const { createFixtureLoader } = require('ethereum-waffle');
 const { xaaveFixture } = require('./fixtures');
-const { increaseTime } = require('./helpers')
+const { increaseTime, mineBlocks } = require('./helpers')
 
 describe('xAAVE: Cooldown, Redeem', async () => {
 	const provider = waffle.provider;
@@ -29,6 +29,7 @@ describe('xAAVE: Cooldown, Redeem', async () => {
 
 	it('should prevent AAVE from being staked during a cooldown period', async () => {
 		await xaave.mint('0', { value: utils.parseEther('0.01') });
+		await mineBlocks(5);
 		const stakedBalBefore = await xaave.getStakedBalance();
 
 		await xaave.cooldown();

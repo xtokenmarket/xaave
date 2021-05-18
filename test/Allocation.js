@@ -1,6 +1,7 @@
 const { expect, assert } = require('chai');
 const { utils } = require('ethers');
 const { createFixtureLoader } = require('ethereum-waffle');
+const { mineBlocks } = require('./helpers');
 const { xaaveFixture } = require('./fixtures');
 
 describe('xAAVE: Allocation', async () => {
@@ -37,7 +38,9 @@ describe('xAAVE: Allocation', async () => {
 		const bufferTarget = utils.bigNumberify(20)
 		const supply = await xaave.totalSupply()
 		const tokensToBurn = utils.bigNumberify(supply).div(utils.bigNumberify(100))
+		await mineBlocks(5);
 		await xaave.burn(tokensToBurn, false, 0)
+		await mineBlocks(5);
 
 		const bufferBalanceBefore = await xaave.getBufferBalance();
 		const totalBalanceBefore = await xaave.getFundHoldings()

@@ -2,6 +2,7 @@ const { expect, assert } = require('chai');
 const { utils, ethers } = require('ethers');
 const { createFixtureLoader } = require('ethereum-waffle');
 const { xaaveFixture } = require('./fixtures');
+const { mineBlocks } = require('./helpers');
 
 describe('xAAVE: Utils', async () => {
 	const provider = waffle.provider;
@@ -62,6 +63,7 @@ describe('xAAVE: Utils', async () => {
 
 	it('should be able to recover tokens errantly transferred to contract', async () => {
         await xaave.mint('0', { value: utils.parseEther('0.01') });
+		await mineBlocks(5);
 		const xaaveBal = await xaave.balanceOf(wallet.address)
 
 		await xaave.transfer(xaave.address, xaaveBal)
@@ -74,7 +76,9 @@ describe('xAAVE: Utils', async () => {
 	});
 
 	it('should allow admin to collect fees', async () => {
+		await mineBlocks(5);
 		await xaave.mint('0', { value: utils.parseEther('1') });
+		await mineBlocks(5);
 		const aaveAmount = utils.parseEther('10');
 		await aave.approve(xaave.address, aaveAmount);
 		await xaave.mintWithToken(aaveAmount, ethers.constants.AddressZero);
