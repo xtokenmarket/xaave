@@ -35,14 +35,14 @@ describe('xAAVE: BlockLock', async () => {
             to.be.reverted;
     }),
 
-    it('account shouldn\'t be able to call transfer, mint and burn before 6 blocks have been mined', async () => {
+    it('account shouldn\'t be able to call burn, mint and transfer before 6 blocks have been mined', async () => {
         const aaveAmount = utils.parseEther('10');
-        await xaave.transfer(user1.address, aaveAmount);
-        await expect(xaave.burn(aaveAmount, true, 0)).
-            to.be.reverted;
+        await xaave.burn(aaveAmount, true, 0);
         await expect(xaave.mint('0', { value: utils.parseEther('5') })).
             to.be.reverted;
         await expect(xaave.mintWithToken(aaveAmount, ethers.constants.AddressZero)).
+            to.be.reverted;
+        await expect(xaave.transfer(user1.address, aaveAmount)).
             to.be.reverted;
     }),
 
@@ -51,6 +51,17 @@ describe('xAAVE: BlockLock', async () => {
         await xaave.approve(user1.address, 1);
         await xaave.approve(user2.address, 1);
         await xaave.mint('0', { value: utils.parseEther('5') });
+        await expect(xaave.connect(user1).transferFrom(wallet.address, user1.address, 1)).
+            to.be.reverted;
+        await expect(xaave.connect(user2).transferFrom(wallet.address, user1.address, 1)).
+            to.be.reverted;
+    }),
+
+    it(`no account should be able to call transferFrom from sender address
+        which has called burn before 6 blocks have been mined`, async () => {
+        await xaave.approve(user1.address, 1);
+        await xaave.approve(user2.address, 1);
+        await xaave.burn(1, true, 0);
         await expect(xaave.connect(user1).transferFrom(wallet.address, user1.address, 1)).
             to.be.reverted;
         await expect(xaave.connect(user2).transferFrom(wallet.address, user1.address, 1)).
