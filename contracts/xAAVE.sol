@@ -96,24 +96,10 @@ contract xAAVE is ERC20, Pausable, Ownable {
 
     uint256 private constant AFFILIATE_FEE_DIVISOR = 4;
 
-    
-    //  BlockLock logic ; Implements locking of mint, burn, transfer and transferFrom
-    //  functions via a notLocked modifier
-    //  Functions are locked per address. 
-
-    // how many blocks are the functions locked for
+    // addresses are locked from transfer after minting or burning
     uint256 private constant BLOCK_LOCK_COUNT = 6;
     // last block for which this address is timelocked
     mapping(address => uint256) public lastLockedBlock;
-
-    modifier notLocked(address lockedAddress) {
-        require(
-            lastLockedBlock[lockedAddress] <= block.number,
-            "Function is locked for this address"
-        );
-        _;
-        lastLockedBlock[lockedAddress] = block.number + BLOCK_LOCK_COUNT;
-    }
 
     function initialize(
         IERC20 _aave,
@@ -156,6 +142,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
         notLocked(msg.sender)
     {
         require(msg.value > 0, "Must send ETH");
+        lock(msg.sender);
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
 
@@ -179,6 +166,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
         notLocked(msg.sender)
     {
         require(aaveAmount > 0, "Must send AAVE");
+        lock(msg.sender);
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
 
@@ -236,6 +224,7 @@ contract xAAVE is ERC20, Pausable, Ownable {
         uint256 minRate
     ) public notLocked(msg.sender) {
         require(tokenAmount > 0, "Must send xAAVE");
+        lock(msg.sender);
 
         (uint256 stakedBalance, uint256 bufferBalance) = getFundBalances();
         uint256 aaveHoldings = bufferBalance.add(stakedBalance);
@@ -639,6 +628,27 @@ contract xAAVE is ERC20, Pausable, Ownable {
             "Non-admin caller"
         );
         _;
+    }
+
+    /**
+     *  BlockLock logic: Implements locking of mint, burn, transfer and transferFrom
+     *  functions via a notLocked modifier.
+     *  Functions are locked per address.
+     */
+    modifier notLocked(address lockedAddress) {
+        require(
+            lastLockedBlock[lockedAddress] <= block.number,
+            "Function is temporarily locked for this address"
+        );
+        _;
+    }
+
+    /**
+     * @dev Lock mint, burn, transfer and transferFrom functions
+     *      for _address for BLOCK_LOCK_COUNT blocks
+     */
+    function lock(address _address) private {
+        lastLockedBlock[_address] = block.number + BLOCK_LOCK_COUNT;
     }
 
     receive() external payable {
