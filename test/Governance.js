@@ -1,19 +1,19 @@
-const { expect, assert } = require('chai');
-const { utils, ethers } = require('ethers');
-const { createFixtureLoader } = require('ethereum-waffle');
-const { xaaveFixture } = require('./fixtures');
+const { expect } = require('chai');
+const { ethers } = require('hardhat');
+const { deploymentFixture } = require('./fixture');
+
+
 
 describe('xAAVE: Governance', async () => {
-	const provider = waffle.provider;
-	const [wallet, user1, user2] = provider.getWallets();
-	const loadFixture = createFixtureLoader(provider, [wallet, user1, user2]);
+	let wallet, user1, user2;
 
 	let aave;
-    let xaave;
-    let governanceV2;
+        let xaave;
+        let governanceV2;
 
 	before(async () => {
-		({ xaave, aave, governanceV2 } = await loadFixture(xaaveFixture));
+                [wallet, user1, user2] = await ethers.getSigners();
+                ({ xaave, aave, governanceV2 } = await deploymentFixture());
 	});
 
 	it('should allow the governance v2 address to be set once', async () => {

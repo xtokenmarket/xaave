@@ -1,4 +1,4 @@
-const {ethers} = require('hardhat');
+const { ethers } = require('hardhat'); 
 
 const ADDRESSES = {
 	aave: {
@@ -35,35 +35,22 @@ const ADDRESSES = {
 	},
 };
 
-// const network = 'kovan';
 const network = 'mainnet';
 
+/**
+ * Deploy and initialize xAAVE implementation on mainnet
+ */
 async function main() {
 	const [deployer] = await ethers.getSigners();
-
-	console.log('Deploying contracts with the account:', await deployer.getAddress());
-
-	console.log('Account balance:', (await deployer.getBalance()).toString());
+	console.log('deploying xAAVE from:', deployer.address);
 
 	const xAAVE = await ethers.getContractFactory('xAAVE');
 	const xaave = await xAAVE.deploy();
 
 	await xaave.deployed();
-	console.log('xaave.address', xaave.address);
+	console.log('xAAVE address:', xaave.address);
 
-	const xAAVEProxy = await ethers.getContractFactory('xAAVEProxy');
-	const xaaveProxy = await xAAVEProxy.deploy(
-		xaave.address,
-		ADDRESSES['proxyAdmin'][network],
-		ADDRESSES['cosigner1'][network],
-		ADDRESSES['cosigner2'][network]
-	);
-	await xaaveProxy.deployed();
-	console.log('xaaveProxy', xaaveProxy.address);
-
-	const xaaveProxyCast = await ethers.getContractAt('xAAVE', xaaveProxy.address, deployer);
-
-	await xaaveProxyCast.initialize(
+	let tx = await xaave.initialize(
 		ADDRESSES['aave'][network],
 		ADDRESSES['votingAave'][network],
 		ADDRESSES['stakedAave'][network],
@@ -75,12 +62,9 @@ async function main() {
 		'xAAVEa',
 		'Buchanan'
 	);
-	console.log('initialized')
-	
-	await xaaveProxyCast.approveStakingContract();
-	console.log('staking contract approved')
-	await xaaveProxyCast.approveKyberContract(ADDRESSES['aave'][network]);
-	console.log('kyber contract approved')
+	await tx.wait();
+	console.log('xAAVE initialized');
+	console.log('finished')
 }
 
 main()
@@ -88,8 +72,4 @@ main()
 	.catch((error) => {
 		console.error(error);
 		process.exit(1);
-	});
-
-module.exports = {
-	ADDRESSES,
-};
+});

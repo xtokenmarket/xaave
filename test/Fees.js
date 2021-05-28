@@ -1,18 +1,18 @@
-const { expect, assert } = require('chai');
-const { utils } = require('ethers');
-const { createFixtureLoader } = require('ethereum-waffle');
-const { xaaveFixture } = require('./fixtures');
+const { expect } = require('chai');
+const { utils } = ethers
+const { deploymentFixture } = require('./fixture');
+
+
 
 describe('xAAVE: Fees', async () => {
-    const provider = waffle.provider;
-    const [wallet, user1, user2] = provider.getWallets();
-    const loadFixture = createFixtureLoader(provider, [wallet, user1, user2]);
+    let wallet, user1, user2;
 
     let aave;
     let xaave;
 
     beforeEach(async () => {
-        ({ xaave, aave } = await loadFixture(xaaveFixture));
+        [wallet, user1, user2] = await ethers.getSigners();
+        ({ xaave, aave } = await deploymentFixture());
     });
 
     it('should register full fees to the contract if affiliate is address(0)', async () => {

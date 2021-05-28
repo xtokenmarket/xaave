@@ -1,13 +1,12 @@
-const { expect, assert } = require('chai');
-const { utils, ethers } = require('ethers');
-const { createFixtureLoader } = require('ethereum-waffle');
-const { xaaveFixture } = require('./fixtures');
+const { expect } = require('chai');
+const { ethers } = require('hardhat');
+const { deploymentFixture } = require('./fixture');
+
+
 const { increaseTime } = require('./helpers')
 
 describe('xAAVE: Proxy', async () => {
-	const provider = waffle.provider;
-	const [wallet, cosigner1, cosigner2, random, random2] = provider.getWallets();
-	const loadFixture = createFixtureLoader(provider, [wallet, cosigner1, cosigner2]);
+	let wallet, cosigner1, cosigner2, random, random2;
 
 	let xaaveProxy;
 	let implementation;
@@ -15,7 +14,8 @@ describe('xAAVE: Proxy', async () => {
 	let stakedAave;
 
 	beforeEach(async () => {
-		({ xaaveProxy, implementation, kyber, stakedAave } = await loadFixture(xaaveFixture));
+        [wallet, cosigner1, cosigner2, random, random2] = await ethers.getSigners();
+		({ xaaveProxy, implementation, kyber, stakedAave } = await deploymentFixture());
 	});
 
 	it('should display correct co-signer 1, co-signer 2, admin, and implementation addresses', async () => {
@@ -33,16 +33,16 @@ describe('xAAVE: Proxy', async () => {
 
 	it('should not let non-admins propose new implementations', async () => {
 		// use kyber as example new impl address
-		await expect(xaaveProxy.connect(cosigner1).proposeNewImplementation(kyber.address)).to.be.revertedWith();
-		await expect(xaaveProxy.connect(random).proposeNewImplementation(kyber.address)).to.be.revertedWith();
+		await expect(xaaveProxy.connect(cosigner1).proposeNewImplementation(kyber.address)).to.be.reverted;
+		await expect(xaaveProxy.connect(random).proposeNewImplementation(kyber.address)).to.be.reverted;
 		await xaaveProxy.proposeNewImplementation(kyber.address);
 		expect(await xaaveProxy.proposedNewImplementation()).to.be.equal(kyber.address);
 	});
 
 	it('should be approved only by a co-signer and with the correct address', async () => {
 		await xaaveProxy.proposeNewImplementation(kyber.address);
-		await expect(xaaveProxy.confirmImplementation(kyber.address)).to.be.revertedWith();
-		await expect(xaaveProxy.connect(cosigner1).confirmImplementation(stakedAave.address)).to.be.revertedWith(); // incorrect impl address
+		await expect(xaaveProxy.confirmImplementation(kyber.address)).to.be.reverted;
+		await expect(xaaveProxy.connect(cosigner1).confirmImplementation(stakedAave.address)).to.be.reverted; // incorrect impl address
 		await xaaveProxy.connect(cosigner1).confirmImplementation(kyber.address);
 		expect(await xaaveProxy.implementation()).to.be.equal(kyber.address);
 	});

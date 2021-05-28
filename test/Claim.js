@@ -1,19 +1,20 @@
-const { expect, assert } = require('chai');
-const { utils } = require('ethers');
-const { createFixtureLoader } = require('ethereum-waffle');
-const { xaaveFixture } = require('./fixtures');
+const { expect } = require('chai');
+const { ethers } = require('hardhat');
+const { utils } = ethers
+const { deploymentFixture } = require('./fixture');
+const { bn } = require('./helpers');
+
 
 
 describe('xAAVE: Claiming', async () => {
-	const provider = waffle.provider;
-	const [wallet, user1, user2] = provider.getWallets();
-	const loadFixture = createFixtureLoader(provider, [wallet, user1, user2]);
+	let wallet, user1, user2;
 
 	let aave;
 	let xaave;
 
 	beforeEach(async () => {
-		({ xaave, aave } = await loadFixture(xaaveFixture));
+        [wallet, user1, user2] = await ethers.getSigners();
+		({ xaave, aave } = await deploymentFixture());
 	});
 
 	it('should register an increased AAVE buffer balance on claim', async () => {
@@ -50,12 +51,12 @@ describe('xAAVE: Claiming', async () => {
         await xaave.claim();
 
         const withdrawableAaveFeesAfter = await xaave.withdrawableAaveFees()
-        const feesGenerated = utils.bigNumberify(withdrawableAaveFeesAfter).sub(utils.bigNumberify(withdrawableAaveFeesBefore))
-        const totalClaimSize = feesGenerated.mul(utils.bigNumberify(feeDivisors.claimFee))
+        const feesGenerated = bn(withdrawableAaveFeesAfter).sub(bn(withdrawableAaveFeesBefore))
+        const totalClaimSize = feesGenerated.mul(bn(feeDivisors.claimFee))
         
         const bufferBalanceAfter = await xaave.getBufferBalance();
-        const bufferBalanceIncrease = utils.bigNumberify(bufferBalanceAfter).sub(utils.bigNumberify(bufferBalanceBefore))
+        const bufferBalanceIncrease = bn(bufferBalanceAfter).sub(bn(bufferBalanceBefore))
 
-        expect(totalClaimSize).to.be.equal(utils.bigNumberify(bufferBalanceIncrease).add(utils.bigNumberify(feesGenerated)))
+        expect(totalClaimSize).to.be.equal(bn(bufferBalanceIncrease).add(bn(feesGenerated)))
     })
 });
