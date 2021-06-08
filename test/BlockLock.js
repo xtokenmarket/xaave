@@ -1,20 +1,19 @@
 const { expect } = require('chai');
-const { utils, ethers } = require('ethers');
-const { createFixtureLoader } = require('ethereum-waffle');
+const { ethers } = require('hardhat');
+const { utils } = ethers
+const { deploymentFixture } = require('./fixture');
 const { mineBlocks } = require('./helpers');
-const { xaaveFixture } = require('./fixtures');
+
 
 // Block locking tests for xAAVE
 describe('xAAVE: BlockLock', async () => {
-    const provider = waffle.provider;
-	const [wallet, user1, user2] = provider.getWallets();
-	const loadFixture = createFixtureLoader(provider, [wallet, user1, user2]);
-
 	let aave;
 	let xaave;
+    let wallet, user1, user2;
 
 	beforeEach(async () => {
-		({ xaave, aave } = await loadFixture(xaaveFixture));
+        [wallet, user1, user2] = await ethers.getSigners();
+		({ xaave, aave } = await deploymentFixture());
         const amount = utils.parseEther('10');
         await xaave.mint('0', { value: amount});
         await mineBlocks(5);

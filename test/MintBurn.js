@@ -1,19 +1,21 @@
-const { expect, assert } = require('chai');
-const { utils, ethers } = require('ethers');
-const { createFixtureLoader } = require('ethereum-waffle');
-const { xaaveFixture } = require('./fixtures');
+const { expect } = require('chai');
+const { ethers } = require('hardhat');
+const { utils } = ethers
+const { deploymentFixture } = require('./fixture');
+const { bn } = require('./helpers');
+
+
 const { mineBlocks } = require('./helpers');
 
 describe('xAAVE: Mint/Burn', async () => {
-	const provider = waffle.provider;
-	const [wallet, user1, user2] = provider.getWallets();
-	const loadFixture = createFixtureLoader(provider, [wallet, user1, user2]);
+	let wallet, user1, user2;
 
 	let aave;
 	let xaave;
 
 	before(async () => {
-		({ xaave, aave } = await loadFixture(xaaveFixture));
+        [wallet, user1, user2] = await ethers.getSigners();
+		({ xaave, aave } = await deploymentFixture());
 	});
 
 	it('should mint xAAVE tokens to user sending ETH', async () => {
@@ -34,9 +36,9 @@ describe('xAAVE: Mint/Burn', async () => {
 	it('should burn xAAVE tokens for AAVE', async () => {
 		const aaveBalBefore = await aave.balanceOf(wallet.address);
 		const xaaveBal = await xaave.balanceOf(wallet.address);
-		const bnBal = utils.bigNumberify(xaaveBal);
+		const bnBal = bn(xaaveBal);
 
-		const xaaveToRedeem = bnBal.div(utils.bigNumberify(100));
+		const xaaveToRedeem = bnBal.div(bn(100));
 		await mineBlocks(5);
 		await xaave.burn(xaaveToRedeem.toString(), false, 0);
 		await mineBlocks(5);
@@ -48,14 +50,14 @@ describe('xAAVE: Mint/Burn', async () => {
 	it('should burn xAAVE tokens for ETH', async () => {
 		await xaave.mint('0', { value: utils.parseEther('5') });
 		await mineBlocks(5);
-		const ethBalBefore = await provider.getBalance(wallet.address);
+		const ethBalBefore = await ethers.provider.getBalance(wallet.address);
 		const xaaveBal = await xaave.balanceOf(wallet.address);
-		const bnBal = utils.bigNumberify(xaaveBal);
+		const bnBal = bn(xaaveBal);
 
-		const xaaveToRedeem = bnBal.div(utils.bigNumberify(100));
+		const xaaveToRedeem = bnBal.div(bn(100));
 		await xaave.burn(xaaveToRedeem.toString(), true, 0);
 
-		const ethBalAfter = await provider.getBalance(wallet.address);
+		const ethBalAfter = await ethers.provider.getBalance(wallet.address);
 		expect(ethBalAfter).to.be.gt(ethBalBefore);
 	});
 

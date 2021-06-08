@@ -1,5 +1,3 @@
-const {ethers} = require('hardhat');
-
 const ADDRESSES = {
 	aave: {
 		kovan: '0xb597cd8d3217ea6477232f9217fa70837ff667af',

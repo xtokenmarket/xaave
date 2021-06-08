@@ -1,19 +1,18 @@
 const { expect, assert } = require('chai');
-const { utils, ethers } = require('ethers');
-const { createFixtureLoader } = require('ethereum-waffle');
-const { xaaveFixture } = require('./fixtures');
+const { ethers } = require('hardhat');
+const { utils } = ethers
+const { deploymentFixture } = require('./fixture');
 const { mineBlocks } = require('./helpers');
 
 describe('xAAVE: Utils', async () => {
-	const provider = waffle.provider;
-	const [wallet, user1, user2] = provider.getWallets();
-	const loadFixture = createFixtureLoader(provider, [wallet, user1, user2]);
+	let wallet, user1, user2;
 
 	let aave;
 	let xaave;
 
 	before(async () => {
-		({ xaave, aave } = await loadFixture(xaaveFixture));
+        [wallet, user1, user2] = await ethers.getSigners();
+		({ xaave, aave } = await deploymentFixture());
 	});
 
 	it('should not allow non-admin to pause', async () => {
@@ -83,9 +82,9 @@ describe('xAAVE: Utils', async () => {
 		await aave.approve(xaave.address, aaveAmount);
 		await xaave.mintWithToken(aaveAmount, ethers.constants.AddressZero);
 
-        const adminEthBalanceBefore = await provider.getBalance(wallet.address)
+        const adminEthBalanceBefore = await ethers.provider.getBalance(wallet.address)
         const adminAaveBalanceBefore = await aave.balanceOf(wallet.address)
-        const contractEthFeeBalBefore = await provider.getBalance(xaave.address)
+        const contractEthFeeBalBefore = await ethers.provider.getBalance(xaave.address)
 		const contractAaveFeeBalBefore = await xaave.withdrawableAaveFees()
 
 		expect(contractEthFeeBalBefore).to.be.gt(0)
@@ -93,9 +92,9 @@ describe('xAAVE: Utils', async () => {
 
 		await xaave.withdrawFees()
 		
-        const adminEthBalanceAfter = await provider.getBalance(wallet.address)
+        const adminEthBalanceAfter = await ethers.provider.getBalance(wallet.address)
 		const adminAaveBalanceAfter = await aave.balanceOf(wallet.address)
-        const contractEthFeeBalAfter = await provider.getBalance(xaave.address)
+        const contractEthFeeBalAfter = await ethers.provider.getBalance(xaave.address)
 		const contractAaveFeeBalAfter = await xaave.withdrawableAaveFees()
 
 		expect(adminEthBalanceAfter).to.be.gt(adminEthBalanceBefore)

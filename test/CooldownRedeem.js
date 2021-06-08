@@ -1,19 +1,19 @@
 const { expect, assert } = require('chai');
-const { utils, ethers } = require('ethers');
-const { createFixtureLoader } = require('ethereum-waffle');
-const { xaaveFixture } = require('./fixtures');
+const { ethers } = require('hardhat');
+const { utils } = ethers
+const { deploymentFixture } = require('./fixture');
+
+
 const { increaseTime, mineBlocks } = require('./helpers')
 
 describe('xAAVE: Cooldown, Redeem', async () => {
 	const provider = waffle.provider;
-	const [wallet, user1, user2] = provider.getWallets();
-	const loadFixture = createFixtureLoader(provider, [wallet, user1, user2]);
-
-	let aave;
+	let wallet, user1, user2;
 	let xaave;
 
 	beforeEach(async () => {
-		({ xaave, aave } = await loadFixture(xaaveFixture));
+        [wallet, user1, user2] = await ethers.getSigners();
+		({ xaave, aave } = await deploymentFixture());
 	});
 
 	it('should allow admin to trigger a cooldown period', async () => {
